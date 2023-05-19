@@ -46,7 +46,7 @@ docker-compose up --build
 
 ## Access
 
-Backend: <http://localhost:8000>
+Backend: <http://localhost:8000/>
 
 ## API Endpoints
 
