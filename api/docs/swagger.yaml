@@ -1,0 +1,254 @@
+definitions:
+  handlers.render:
+    additionalProperties: true
+    type: object
+  models.ProfileBio:
+    properties:
+      Info:
+        type: string
+      NickName:
+        type: string
+    type: object
+  models.User:
+    properties:
+      Email:
+        type: string
+      FullName:
+        type: string
+      NickName:
+        type: string
+      Pwd:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      description: Endpoint for the home page.
+      operationId: Home
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Home
+          schema:
+            type: string
+      summary: Home
+      tags:
+      - home
+  /info/{nickname}:
+    get:
+      description: Retrieve the public bio information for a user.
+      operationId: BioPublic
+      parameters:
+      - description: User Nickname
+        in: path
+        name: nickname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success BioPublic
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.render'
+      summary: BioPublic
+      tags:
+      - user
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint for user login.
+      operationId: Login
+      parameters:
+      - description: User Information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success Login
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      summary: Login
+      tags:
+      - user
+  /profile:
+    get:
+      description: Retrieve the profile information for a user.
+      operationId: Profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success Profile
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      security:
+      - OAuth2Application: []
+      summary: Profile
+      tags:
+      - profile
+  /profile/info:
+    delete:
+      description: Endpoint for deleting a user's bio.
+      operationId: DeleteBio
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success DeleteBio
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      security:
+      - OAuth2Application: []
+      summary: DeleteBio
+      tags:
+      - /profile/info
+    post:
+      consumes:
+      - application/json
+      description: Endpoint for adding a user's bio.
+      operationId: AddBio
+      parameters:
+      - description: User Bio Information
+        in: body
+        name: bio
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProfileBio'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success AddBio
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      security:
+      - OAuth2Application: []
+      summary: AddBio
+      tags:
+      - /profile/info
+    put:
+      consumes:
+      - application/json
+      description: Endpoint for editing a user's bio.
+      operationId: EditBio
+      parameters:
+      - description: User Bio Information
+        in: body
+        name: bio
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProfileBio'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success EditBio
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      security:
+      - OAuth2Application: []
+      summary: EditBio
+      tags:
+      - /profile/info
+  /profile/logout:
+    post:
+      description: Endpoint for user logout.
+      operationId: Logout
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success Logout
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      security:
+      - OAuth2Application: []
+      summary: Logout
+      tags:
+      - profile
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint for user registration.
+      operationId: Register
+      parameters:
+      - description: User Information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success Register
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+      summary: Register
+      tags:
+      - user
+swagger: "2.0"

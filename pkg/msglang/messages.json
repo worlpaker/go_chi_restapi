@@ -1,0 +1,28 @@
+{
+    "en-US": {
+        "success": {
+            "register": "profile successfully created! please login.",
+            "login": "successfully logged in",
+            "addbio": "successfully bio added",
+            "editbio": "successfully bio edited",
+            "deletebio": "succesfully bio deleted",
+            "logout": "successfully logged out"
+        },
+        "errors": {
+            "not_found": "not found"
+        }
+    },
+    "tr-TR": {
+        "success": {
+            "register": "profil başarıyla oluşturuldu! lütfen giriş yapın.",
+            "login": "başarıyla giriş yapıldı",
+            "addbio": "bio başarıyla eklendi",
+            "editbio": "bio başarıyla değiştirildi",
+            "deletebio": "bio başarıyla silindi",
+            "logout": "başarıyla çıkış yapıldı"
+        },
+        "errors": {
+            "not_found": "bulunamadi"
+        }
+    }
+}
