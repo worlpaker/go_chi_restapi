@@ -56,7 +56,7 @@ Information about each endpoint, including request/response formats and paramete
 
 - Alternatively, you can also access it manually at: `api/docs`
 
-## Tests
+## Running Tests
 
 To run the unit tests, execute the following command:
 
