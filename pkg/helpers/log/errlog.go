@@ -5,7 +5,8 @@ import (
 	"runtime"
 )
 
-// ErrLog to log error in runtime for developer mode
+// Err logs an error during runtime for better visibility in developer mode.
+// It returns true if an error occurred, or false otherwise.
 func Err(err error) (ok bool) {
 	if err != nil {
 		pc, filename, line, _ := runtime.Caller(1)
