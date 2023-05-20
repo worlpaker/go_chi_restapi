@@ -4,6 +4,7 @@ import (
 	"backend/models"
 	Log "backend/pkg/helpers/log"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -17,6 +18,10 @@ type GenM interface {
 
 // ReadJSON reads json body by requested model type
 func ReadJSON[T GenM](r *http.Request) (data T, err error) {
+	if r.Body == nil {
+		err = errors.New("empty request body")
+		return
+	}
 	j := json.NewDecoder(r.Body)
 	j.DisallowUnknownFields()
 	if err = j.Decode(&data); Log.Err(err) {
@@ -53,6 +58,9 @@ func ErrResponse(w http.ResponseWriter, HTTPStatusCode int) error {
 	return json.NewEncoder(w).Encode(msg)
 }
 
+// SetTokenCookie sets a cookie named "Token" in the provided token value.
+// If active is true, it creates a cookie.
+// If active is false, it deletes a cookie.
 func SetTokenCookie(w http.ResponseWriter, token string, active bool) {
 	var cookie *http.Cookie
 	if active {
