@@ -58,15 +58,13 @@ Information about each endpoint, including request/response formats and paramete
 
 ## Running Tests
 
-To run the unit tests, execute the following command:
-
-- Run it with make:
+- Run it using the `make` command:
 
 ```bash
 make test
 ```
 
-- Manually:
+- Run it manually using the following command:
 
 ```bash
 go test -v ./...
