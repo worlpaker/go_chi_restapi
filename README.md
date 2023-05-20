@@ -34,7 +34,7 @@ git clone https://github.com/worlpaker/go_chi_restapi_example.git
 cd go_restapi_example
 ```
 
-- Set environment variables in config.go before starting the services.
+- Before starting the services, ensure that you set the necessary environment variables in both the `config/config.go` and the `docker-compose.yml`.
 
 - Build containers and start services:
 
