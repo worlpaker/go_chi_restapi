@@ -3,6 +3,7 @@ package server
 import (
 	"backend/api/handlers"
 	"backend/api/routers"
+	"backend/database"
 	"backend/database/pqdb"
 	"database/sql"
 	"log"
@@ -23,8 +24,10 @@ func NewServer(r *chi.Mux, db *sql.DB) *routers.Server {
 	s := &routers.Server{
 		Router: r,
 		Handlers: &handlers.Server{
-			DB: &pqdb.Server{
-				Client: db,
+			DB: &database.DB{
+				Postgres: &pqdb.Server{
+					Client: db,
+				},
 			},
 		},
 	}

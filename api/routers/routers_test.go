@@ -3,6 +3,7 @@ package routers
 import (
 	"backend/api/handlers"
 	"backend/config"
+	"backend/database"
 	"backend/database/pqdb"
 	"backend/models"
 	"backend/pkg/token"
@@ -37,8 +38,10 @@ func FakeNewServer(t *testing.T) (*Server, sqlmock.Sqlmock) {
 	s := &Server{
 		Router: r,
 		Handlers: &handlers.Server{
-			DB: &pqdb.Server{
-				Client: d,
+			DB: &database.DB{
+				Postgres: &pqdb.Server{
+					Client: d,
+				},
 			},
 		},
 	}
@@ -188,7 +191,7 @@ func TestRegisterError(t *testing.T) {
 				mock.ExpectExec(pqdb.Sql_createuser).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
-				err := s.Handlers.DB.SQL_CreateUser(k.data)
+				err := s.Handlers.DB.Postgres.SQL_CreateUser(k.data)
 				assert.Nil(t, err)
 			}
 			databuf := ConvertDatatoBuf(t, k.data)
@@ -299,7 +302,7 @@ func TestLoginError(t *testing.T) {
 				mock.ExpectExec(pqdb.Sql_createuser).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
-				err := s.Handlers.DB.SQL_CreateUser(k.data)
+				err := s.Handlers.DB.Postgres.SQL_CreateUser(k.data)
 				assert.Nil(t, err)
 				pwd, _ := pqdb.HashPassword(k.data.Pwd + "fails.")
 				rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).

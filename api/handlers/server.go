@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"backend/database/pqdb"
+	"backend/database"
 )
 
 type Server struct {
-	DB *pqdb.Server
+	DB *database.DB
 }

@@ -42,7 +42,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
-	if err = s.DB.SQL_CreateUser(user); Log.Err(err) {
+	if err = s.DB.Postgres.SQL_CreateUser(user); Log.Err(err) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -79,7 +79,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
-	token, err := s.DB.SQL_ReadUser(user)
+	token, err := s.DB.Postgres.SQL_ReadUser(user)
 	if Log.Err(err) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
@@ -113,7 +113,7 @@ func (s *Server) BioPublic(w http.ResponseWriter, r *http.Request) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
-	info, err := s.DB.SQL_ReadBio(nickname)
+	info, err := s.DB.Postgres.SQL_ReadBio(nickname)
 	if Log.Err(err) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
@@ -142,7 +142,7 @@ func (s *Server) Profile(w http.ResponseWriter, r *http.Request) {
 		ErrResponse(w, http.StatusUnauthorized)
 		return
 	}
-	info, err := s.DB.SQL_ReadBio(data.NickName)
+	info, err := s.DB.Postgres.SQL_ReadBio(data.NickName)
 	if Log.Err(err) {
 		ErrResponse(w, http.StatusUnauthorized)
 		return
@@ -185,7 +185,7 @@ func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 		NickName: user.NickName,
 		Info:     bio.Info,
 	}
-	if err := s.DB.SQL_AddBio(data); Log.Err(err) {
+	if err := s.DB.Postgres.SQL_AddBio(data); Log.Err(err) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -231,7 +231,7 @@ func (s *Server) EditBio(w http.ResponseWriter, r *http.Request) {
 		NickName: user.NickName,
 		Info:     bio.Info,
 	}
-	if err := s.DB.SQL_EditBio(data); Log.Err(err) {
+	if err := s.DB.Postgres.SQL_EditBio(data); Log.Err(err) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -266,7 +266,7 @@ func (s *Server) DeleteBio(w http.ResponseWriter, r *http.Request) {
 		ErrResponse(w, http.StatusUnauthorized)
 		return
 	}
-	if err := s.DB.SQL_DeleteBio(user.NickName); Log.Err(err) {
+	if err := s.DB.Postgres.SQL_DeleteBio(user.NickName); Log.Err(err) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
