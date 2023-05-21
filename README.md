@@ -25,13 +25,13 @@
 - Clone the repository:
 
 ```bash
-git clone https://github.com/worlpaker/go_chi_restapi_example.git
+git clone https://github.com/worlpaker/go_chi_restapi.git
 ```
 
 - Make sure you are in the correct directory:
 
 ```bash
-cd go_restapi_example
+cd go_chi_restapi
 ```
 
 - Before starting the services, ensure that you set the necessary environment variables in both the `config/config.go` and the `docker-compose.yml`.
