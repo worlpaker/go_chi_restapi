@@ -105,7 +105,7 @@ func TestRegister(t *testing.T) {
 				NickName: "test",
 				FullName: &test_fullname,
 			},
-			expected_code: http.StatusOK,
+			expected_code: http.StatusCreated,
 		},
 		{
 			data: &models.User{
@@ -113,7 +113,7 @@ func TestRegister(t *testing.T) {
 				Pwd:      "test123",
 				NickName: "test",
 			},
-			expected_code: http.StatusOK,
+			expected_code: http.StatusCreated,
 		},
 		{
 			data: &models.User{
@@ -121,7 +121,7 @@ func TestRegister(t *testing.T) {
 				Pwd:      "test1234568",
 				NickName: "test2",
 			},
-			expected_code: http.StatusOK,
+			expected_code: http.StatusCreated,
 		},
 	}
 	for i, k := range data {
@@ -157,7 +157,7 @@ func TestRegisterError(t *testing.T) {
 				FullName: &test_f,
 			},
 			sql:           true,
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 		{
 			data: &models.User{
@@ -180,7 +180,7 @@ func TestRegisterError(t *testing.T) {
 				testtesttesttesttesttesttesttesttest`,
 				NickName: "test",
 			},
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -291,7 +291,7 @@ func TestLoginError(t *testing.T) {
 				Pwd:   "test",
 			},
 			sql:           true,
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -412,7 +412,7 @@ func TestBioPublicError(t *testing.T) {
 				Info:     "test info",
 			},
 			sql:           true,
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -532,7 +532,7 @@ func TestProfileError(t *testing.T) {
 			},
 			sql:           true,
 			cookie:        true,
-			expected_code: http.StatusUnauthorized,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -625,7 +625,7 @@ func TestAddBio(t *testing.T) {
 				Info:     "test info",
 			},
 			cookie:        true,
-			expected_code: http.StatusOK,
+			expected_code: http.StatusCreated,
 		},
 		{
 			data: &models.User{
@@ -638,7 +638,7 @@ func TestAddBio(t *testing.T) {
 				Info:     "test info",
 			},
 			cookie:        true,
-			expected_code: http.StatusOK,
+			expected_code: http.StatusCreated,
 		},
 	}
 	for i, k := range data {
@@ -714,7 +714,7 @@ func TestAddBioError(t *testing.T) {
 			},
 			sql:           true,
 			cookie:        true,
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -898,7 +898,7 @@ func TestEditBioError(t *testing.T) {
 			},
 			sql:           true,
 			cookie:        true,
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -1057,7 +1057,7 @@ func TestDeleteBioError(t *testing.T) {
 			},
 			sql:           true,
 			cookie:        true,
-			expected_code: http.StatusBadRequest,
+			expected_code: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {

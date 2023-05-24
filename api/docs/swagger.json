@@ -57,6 +57,12 @@
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
                     }
                 }
             }
@@ -104,6 +110,12 @@
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
                     }
                 }
             }
@@ -133,6 +145,12 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }
@@ -188,6 +206,12 @@
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
                     }
                 }
             },
@@ -221,7 +245,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Success AddBio",
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
@@ -235,6 +259,12 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }
@@ -271,6 +301,12 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }
@@ -336,7 +372,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Success Register",
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
@@ -350,6 +386,12 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.render"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handlers.render"
                         }

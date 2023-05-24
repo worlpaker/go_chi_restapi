@@ -58,6 +58,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.render'
       summary: BioPublic
       tags:
       - user
@@ -89,6 +93,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.render'
       summary: Login
       tags:
       - user
@@ -105,6 +113,10 @@ paths:
             $ref: '#/definitions/handlers.render'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.render'
       security:
@@ -131,6 +143,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.render'
       security:
       - OAuth2Application: []
       summary: DeleteBio
@@ -151,7 +167,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Success AddBio
           schema:
             $ref: '#/definitions/handlers.render'
@@ -161,6 +177,10 @@ paths:
             $ref: '#/definitions/handlers.render'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.render'
       security:
@@ -193,6 +213,10 @@ paths:
             $ref: '#/definitions/handlers.render'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.render'
       security:
@@ -236,7 +260,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Success Register
           schema:
             $ref: '#/definitions/handlers.render'
@@ -246,6 +270,10 @@ paths:
             $ref: '#/definitions/handlers.render'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.render'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.render'
       summary: Register

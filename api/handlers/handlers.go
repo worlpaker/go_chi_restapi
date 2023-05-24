@@ -32,9 +32,10 @@ func (s *Server) Home(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param user body models.User true "User Information"
-// @Success 200 {object} render "Success Register"
+// @Success 201 {object} render "Success Register"
 // @Failure 400 {object} render "Bad Request"
 // @Failure 401 {object} render "Unauthorized"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /register [post]
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	user, err := ReadJSON[*models.User](r)
@@ -43,7 +44,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = s.DB.Postgres.SQL_CreateUser(user); Log.Err(err) {
-		ErrResponse(w, http.StatusBadRequest)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	msg, ok := r.Context().Value(models.Lang).(models.LangMsg)
@@ -57,7 +58,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		"nickname": user.NickName,
 		"fullname": user.FullName,
 	}
-	Render(w, http.StatusOK, render)
+	Render(w, http.StatusCreated, render)
 }
 
 // Login handles the user login request.
@@ -72,6 +73,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} render "Success Login"
 // @Failure 400 {object} render "Bad Request"
 // @Failure 401 {object} render "Unauthorized"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /login [post]
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := ReadJSON[*models.User](r)
@@ -81,7 +83,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := s.DB.Postgres.SQL_ReadUser(user)
 	if Log.Err(err) {
-		ErrResponse(w, http.StatusBadRequest)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	SetTokenCookie(w, token, true)
@@ -106,6 +108,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} render "Success BioPublic"
 // @Failure 400 {object} render "Bad Request"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /info/{nickname} [get]
 func (s *Server) BioPublic(w http.ResponseWriter, r *http.Request) {
 	nickname := chi.URLParam(r, "nickname")
@@ -115,7 +118,7 @@ func (s *Server) BioPublic(w http.ResponseWriter, r *http.Request) {
 	}
 	info, err := s.DB.Postgres.SQL_ReadBio(nickname)
 	if Log.Err(err) {
-		ErrResponse(w, http.StatusBadRequest)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	render := render{
@@ -135,6 +138,7 @@ func (s *Server) BioPublic(w http.ResponseWriter, r *http.Request) {
 // @Security OAuth2Application
 // @Success 200 {object} render "Success Profile"
 // @Failure 401 {object} render "Unauthorized"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /profile [get]
 func (s *Server) Profile(w http.ResponseWriter, r *http.Request) {
 	data, err := token.ReadJWT(r)
@@ -144,7 +148,7 @@ func (s *Server) Profile(w http.ResponseWriter, r *http.Request) {
 	}
 	info, err := s.DB.Postgres.SQL_ReadBio(data.NickName)
 	if Log.Err(err) {
-		ErrResponse(w, http.StatusUnauthorized)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	render := render{
@@ -166,9 +170,10 @@ func (s *Server) Profile(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param bio body models.ProfileBio true "User Bio Information"
 // @Security OAuth2Application
-// @Success 200 {object} render "Success AddBio"
+// @Success 201 {object} render "Success AddBio"
 // @Failure 400 {object} render "Bad Request"
 // @Failure 401 {object} render "Unauthorized"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /profile/info [post]
 func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 	bio, err := ReadJSON[*models.ProfileBio](r)
@@ -186,7 +191,7 @@ func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 		Info:     bio.Info,
 	}
 	if err := s.DB.Postgres.SQL_AddBio(data); Log.Err(err) {
-		ErrResponse(w, http.StatusBadRequest)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	msg, ok := r.Context().Value(models.Lang).(models.LangMsg)
@@ -199,7 +204,7 @@ func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 		"nickname": user.NickName,
 		"info":     bio.Info,
 	}
-	Render(w, http.StatusOK, render)
+	Render(w, http.StatusCreated, render)
 }
 
 // EditBio handles the request to edit a user's bio.
@@ -215,6 +220,7 @@ func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} render "Success EditBio"
 // @Failure 400 {object} render "Bad Request"
 // @Failure 401 {object} render "Unauthorized"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /profile/info [put]
 func (s *Server) EditBio(w http.ResponseWriter, r *http.Request) {
 	bio, err := ReadJSON[*models.ProfileBio](r)
@@ -232,7 +238,7 @@ func (s *Server) EditBio(w http.ResponseWriter, r *http.Request) {
 		Info:     bio.Info,
 	}
 	if err := s.DB.Postgres.SQL_EditBio(data); Log.Err(err) {
-		ErrResponse(w, http.StatusBadRequest)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	msg, ok := r.Context().Value(models.Lang).(models.LangMsg)
@@ -259,6 +265,7 @@ func (s *Server) EditBio(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} render "Success DeleteBio"
 // @Failure 400 {object} render "Bad Request"
 // @Failure 401 {object} render "Unauthorized"
+// @Failure 500 {object} render "Internal Server Error"
 // @Router /profile/info [delete]
 func (s *Server) DeleteBio(w http.ResponseWriter, r *http.Request) {
 	user, err := token.ReadJWT(r)
@@ -267,7 +274,7 @@ func (s *Server) DeleteBio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.DB.Postgres.SQL_DeleteBio(user.NickName); Log.Err(err) {
-		ErrResponse(w, http.StatusBadRequest)
+		ErrResponse(w, http.StatusInternalServerError)
 		return
 	}
 	msg, ok := r.Context().Value(models.Lang).(models.LangMsg)
