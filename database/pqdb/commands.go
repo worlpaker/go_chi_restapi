@@ -14,6 +14,7 @@ import (
 
 // SQL Command Functions
 
+// SQL_CreateUser creates a new user in the SQL database.
 func (s *Server) SQL_CreateUser(user *models.User) error {
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
@@ -31,6 +32,7 @@ func (s *Server) SQL_CreateUser(user *models.User) error {
 	return err
 }
 
+// SQL_ReadUser reads user information from the SQL database and returns a JWT token.
 func (s *Server) SQL_ReadUser(user *models.User) (string, error) {
 	var dbuser models.User
 	tx, err := s.Client.Begin()
@@ -54,7 +56,7 @@ func (s *Server) SQL_ReadUser(user *models.User) (string, error) {
 	return t, nil
 }
 
-// SQL_AddBio creates UsersInfo then creates InfoMessage to reference UsersInfo Id.
+// SQL_AddBio adds a new profile bio to the SQL database.
 func (s *Server) SQL_AddBio(user *models.ProfileBio) error {
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
@@ -67,6 +69,7 @@ func (s *Server) SQL_AddBio(user *models.ProfileBio) error {
 	return err
 }
 
+// SQL_ReadBio retrieves the profile bio information from the SQL database based on the provided nickname.
 func (s *Server) SQL_ReadBio(nickname string) (string, error) {
 	var dbuser models.ProfileBio
 	tx, err := s.Client.Begin()
@@ -83,6 +86,7 @@ func (s *Server) SQL_ReadBio(nickname string) (string, error) {
 	return dbuser.Info, nil
 }
 
+// SQL_EditBio updates the profile bio in the SQL database with the provided information.
 func (s *Server) SQL_EditBio(user *models.ProfileBio) error {
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
@@ -95,6 +99,7 @@ func (s *Server) SQL_EditBio(user *models.ProfileBio) error {
 	return err
 }
 
+// SQL_DeleteBio deletes the profile bio from the SQL database based on the provided nickname.
 func (s *Server) SQL_DeleteBio(nickname string) error {
 	//example of using prepare context
 	//Why? - When you expect to execute the same SQL repeatedly.
