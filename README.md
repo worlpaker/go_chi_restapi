@@ -39,7 +39,7 @@ cd go_chi_restapi
 - Build containers and start services:
 
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
 
 - Detailed commands: [Docker Commands](https://docs.docker.com/engine/reference/commandline/docker/)
