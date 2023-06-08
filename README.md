@@ -58,14 +58,14 @@ Information about each endpoint, including request/response formats and paramete
 
 ## Running Tests
 
-- Run it using the `make` command:
+- Run tests using the `make` command:
 
-```bash
+```sh
 make test
 ```
 
-- Run it manually using the following command:
+- To generate coverage reports and obtain more detailed information about the tests, use the following `make` command:
 
-```bash
-go test -v ./...
+```sh
+make cover
 ```
