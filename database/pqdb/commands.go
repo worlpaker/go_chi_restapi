@@ -21,7 +21,7 @@ func (s *Server) SQL_CreateUser(user *models.User) error {
 		return err
 	}
 	defer func() { HandleTransaction(tx, &err) }()
-	hashed_Pwd, err := HashPassword(user.Pwd)
+	hashed_Pwd, err := HashPassword(user.Password)
 	if Log.Err(err) {
 		return err
 	}
@@ -43,10 +43,10 @@ func (s *Server) SQL_ReadUser(user *models.User) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err = tx.QueryRowContext(ctx, Sql_readuser, user.Email).Scan(
-		&dbuser.Email, &dbuser.Pwd, &dbuser.NickName, &dbuser.FullName); Log.Err(err) {
+		&dbuser.Email, &dbuser.Password, &dbuser.NickName, &dbuser.FullName); Log.Err(err) {
 		return "", err
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(dbuser.Pwd), []byte(user.Pwd)); Log.Err(err) {
+	if err = bcrypt.CompareHashAndPassword([]byte(dbuser.Password), []byte(user.Password)); Log.Err(err) {
 		return "", errors.New("password is incorrect")
 	}
 	t, err := token.GenerateJWT(&dbuser)

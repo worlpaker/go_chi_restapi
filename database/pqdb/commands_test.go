@@ -36,7 +36,7 @@ func TestSQL_CreateUser(t *testing.T) {
 	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
-		Pwd:      "test123",
+		Password: "test123",
 		NickName: "test",
 		FullName: &test_fullname,
 	}
@@ -56,7 +56,7 @@ func TestSQL_CreateUserError(t *testing.T) {
 	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
-		Pwd:      "test123",
+		Password: "test123",
 		NickName: "test",
 		FullName: &test_fullname,
 	}
@@ -76,11 +76,11 @@ func TestSQL_ReadUser(t *testing.T) {
 	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
-		Pwd:      "test123",
+		Password: "test123",
 		NickName: "test",
 		FullName: &test_fullname,
 	}
-	hashed_Pwd, err := HashPassword(data.Pwd)
+	hashed_Pwd, err := HashPassword(data.Password)
 	assert.Nil(t, err)
 	rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
 		AddRow(data.Email, hashed_Pwd, data.NickName, data.FullName)
@@ -100,7 +100,7 @@ func TestSQL_ReadUserError(t *testing.T) {
 	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
-		Pwd:      "test123",
+		Password: "test123",
 		NickName: "test",
 		FullName: &test_fullname,
 	}

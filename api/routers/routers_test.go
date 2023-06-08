@@ -101,7 +101,7 @@ func TestRegister(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "test",
 				FullName: &test_fullname,
 			},
@@ -110,7 +110,7 @@ func TestRegister(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "test",
 			},
 			expected_code: http.StatusCreated,
@@ -118,7 +118,7 @@ func TestRegister(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test1@test.com",
-				Pwd:      "test1234568",
+				Password: "test1234568",
 				NickName: "test2",
 			},
 			expected_code: http.StatusCreated,
@@ -152,7 +152,7 @@ func TestRegisterError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "test",
 				FullName: &test_f,
 			},
@@ -161,21 +161,21 @@ func TestRegisterError(t *testing.T) {
 		},
 		{
 			data: &models.User{
-				Pwd: "test123",
+				Password: "test123",
+			},
+			expected_code: http.StatusBadRequest,
+		},
+		{
+			data: &models.User{
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			expected_code: http.StatusBadRequest,
 		},
 		{
 			data: &models.User{
 				Email: "test@test.com",
-				Pwd:   "test123",
-			},
-			expected_code: http.StatusBadRequest,
-		},
-		{
-			data: &models.User{
-				Email: "test@test.com",
-				Pwd: `testtesttesttesttest
+				Password: `testtesttesttesttest
 				testtesttesttesttesttest
 				testtesttesttesttesttesttesttesttest`,
 				NickName: "test",
@@ -237,15 +237,15 @@ func TestLogin(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Pwd:   "test123",
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			expected_code: http.StatusOK,
 		},
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "test",
 			},
 			expected_code: http.StatusOK,
@@ -253,7 +253,7 @@ func TestLogin(t *testing.T) {
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			pwd, _ := pqdb.HashPassword(k.data.Pwd)
+			pwd, _ := pqdb.HashPassword(k.data.Password)
 			rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
 				AddRow(k.data.Email, pwd, k.data.NickName, k.data.FullName)
 			mock.ExpectBegin()
@@ -280,15 +280,15 @@ func TestLoginError(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "test",
 			},
 			expected_code: http.StatusBadRequest,
 		},
 		{
 			data: &models.User{
-				Email: "test1234@test.com",
-				Pwd:   "test",
+				Email:    "test1234@test.com",
+				Password: "test",
 			},
 			sql:           true,
 			expected_code: http.StatusInternalServerError,
@@ -304,7 +304,7 @@ func TestLoginError(t *testing.T) {
 				mock.ExpectCommit()
 				err := s.Handlers.DB.Postgres.SQL_CreateUser(k.data)
 				assert.Nil(t, err)
-				pwd, _ := pqdb.HashPassword(k.data.Pwd + "fails.")
+				pwd, _ := pqdb.HashPassword(k.data.Password + "fails.")
 				rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
 					AddRow(k.data.Email, pwd, k.data.NickName, k.data.FullName)
 				mock.ExpectBegin()
@@ -445,8 +445,8 @@ func TestProfile(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Pwd:   "test123",
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			bio: &models.ProfileBio{
 				NickName: "testnick",
@@ -458,7 +458,7 @@ func TestProfile(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -511,7 +511,7 @@ func TestProfileError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -523,7 +523,7 @@ func TestProfileError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -617,8 +617,8 @@ func TestAddBio(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Pwd:   "test123",
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			bio: &models.ProfileBio{
 				NickName: "testnick",
@@ -630,7 +630,7 @@ func TestAddBio(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -681,7 +681,7 @@ func TestAddBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -693,7 +693,7 @@ func TestAddBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test2@test.com",
-				Pwd:      "test1234",
+				Password: "test1234",
 				NickName: "testnick2",
 			},
 			bio: &models.ProfileBio{
@@ -705,7 +705,7 @@ func TestAddBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test2@test.com",
-				Pwd:      "test1234",
+				Password: "test1234",
 				NickName: "testnick2",
 			},
 			bio: &models.ProfileBio{
@@ -784,8 +784,8 @@ func TestEditBio(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Pwd:   "test123",
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			bio: &models.ProfileBio{
 				NickName: "testnick",
@@ -797,7 +797,7 @@ func TestEditBio(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -877,7 +877,7 @@ func TestEditBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -889,7 +889,7 @@ func TestEditBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test2@test.com",
-				Pwd:      "test1234",
+				Password: "test1234",
 				NickName: "testnick2",
 			},
 			bio: &models.ProfileBio{
@@ -969,8 +969,8 @@ func TestDeleteBio(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Pwd:   "test123",
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			bio: &models.ProfileBio{
 				NickName: "testnick",
@@ -983,7 +983,7 @@ func TestDeleteBio(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -1036,7 +1036,7 @@ func TestDeleteBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick",
 			},
 			bio: &models.ProfileBio{
@@ -1048,7 +1048,7 @@ func TestDeleteBioError(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test2@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "testnick2",
 			},
 			bio: &models.ProfileBio{
@@ -1098,8 +1098,8 @@ func TestLogout(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Pwd:   "test123",
+				Email:    "test@test.com",
+				Password: "test123",
 			},
 			expected_code: http.StatusOK,
 			expected_msg: map[string]interface{}{
@@ -1111,7 +1111,7 @@ func TestLogout(t *testing.T) {
 		{
 			data: &models.User{
 				Email:    "test@test.com",
-				Pwd:      "test123",
+				Password: "test123",
 				NickName: "test",
 			},
 			expected_code: http.StatusOK,
@@ -1156,8 +1156,8 @@ func TestLogoutError(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email: "test1234@test.com",
-				Pwd:   "test",
+				Email:    "test1234@test.com",
+				Password: "test",
 			},
 			expected_code: http.StatusUnauthorized,
 			expected_body: "Unauthorized\n",

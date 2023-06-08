@@ -1,6 +1,6 @@
 package models
 
 type ProfileBio struct {
-	NickName string `json:"NickName"`
-	Info     string `json:"Info"`
+	NickName string `json:"nickname"`
+	Info     string `json:"info"`
 }

@@ -39,7 +39,7 @@ func (s *Server) Home(w http.ResponseWriter, r *http.Request) {
 // @Router /register [post]
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	user, err := ReadJSON[*models.User](r)
-	if Log.Err(err) || IsNull(user.Email, user.Pwd, user.NickName) {
+	if Log.Err(err) || IsNull(user.Email, user.Password, user.NickName) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -77,7 +77,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 // @Router /login [post]
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := ReadJSON[*models.User](r)
-	if Log.Err(err) || IsNull(user.Email, user.Pwd) {
+	if Log.Err(err) || IsNull(user.Email, user.Password) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
