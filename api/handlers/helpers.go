@@ -4,8 +4,6 @@ import (
 	"backend/models"
 	Log "backend/pkg/helpers/log"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -19,7 +17,7 @@ type GenM interface {
 // ReadJSON reads json body by requested model type
 func ReadJSON[T GenM](r *http.Request) (data T, err error) {
 	if r.Body == nil {
-		err = errors.New("empty request body")
+		err = ErrEmptyRequestBody
 		return
 	}
 	j := json.NewDecoder(r.Body)
@@ -34,7 +32,7 @@ func ReadJSON[T GenM](r *http.Request) (data T, err error) {
 func IsNull(m ...string) (ok bool) {
 	for i := range m {
 		if m[i] == "" {
-			Log.Err(fmt.Errorf("required parts cannot be empty"))
+			Log.Err(ErrMissingRequiredParams)
 			ok = true
 			return
 		}

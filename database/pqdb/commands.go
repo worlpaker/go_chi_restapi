@@ -6,7 +6,6 @@ import (
 	"backend/pkg/token"
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -47,7 +46,7 @@ func (s *Server) ReadUser(user *models.User) (string, error) {
 		return "", err
 	}
 	if err = bcrypt.CompareHashAndPassword([]byte(dbuser.Password), []byte(user.Password)); Log.Err(err) {
-		return "", errors.New("password is incorrect")
+		return "", ErrIncorrectPassword
 	}
 	t, err := token.GenerateJWT(&dbuser)
 	if Log.Err(err) {
