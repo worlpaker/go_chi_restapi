@@ -93,7 +93,6 @@ func TestHome(t *testing.T) {
 func TestRegister(t *testing.T) {
 	log.SetOutput(io.Discard)
 	s, mock := FakeNewServer(t)
-	test_fullname := "test and test"
 	data := []struct {
 		data          *models.User
 		expected_code int
@@ -103,7 +102,7 @@ func TestRegister(t *testing.T) {
 				Email:    "test@test.com",
 				Password: "test123",
 				NickName: "test",
-				FullName: &test_fullname,
+				FullName: "test and test",
 			},
 			expected_code: http.StatusCreated,
 		},
@@ -143,7 +142,6 @@ func TestRegister(t *testing.T) {
 func TestRegisterError(t *testing.T) {
 	log.SetOutput(io.Discard)
 	s, mock := FakeNewServer(t)
-	test_f := "testfull"
 	data := []struct {
 		data          *models.User
 		sql           bool
@@ -154,7 +152,7 @@ func TestRegisterError(t *testing.T) {
 				Email:    "test@test.com",
 				Password: "test123",
 				NickName: "test",
-				FullName: &test_f,
+				FullName: "test and test",
 			},
 			sql:           true,
 			expected_code: http.StatusInternalServerError,

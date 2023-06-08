@@ -8,7 +8,7 @@ type User struct {
 	Email    string  `json:"email"`
 	Password string  `json:"password"`
 	NickName string  `json:"nickname"`
-	FullName *string `json:"fullname,omitempty"`
+	FullName string `json:"fullname,omitempty"`
 }
 
 func (u *User) ValidateRegister() (ok bool) {

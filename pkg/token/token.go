@@ -48,7 +48,7 @@ func ReadJWT(r *http.Request) (*models.User, error) {
 func JWTtoData(claims jwt.MapClaims) *models.User {
 	email, _ := claims["Email"].(string)
 	nickname, _ := claims["NickName"].(string)
-	fullname, _ := claims["FullName"].(*string)
+	fullname, _ := claims["FullName"].(string)
 	data := &models.User{
 		Email:    email,
 		NickName: nickname,

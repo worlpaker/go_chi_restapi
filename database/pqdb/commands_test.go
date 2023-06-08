@@ -33,12 +33,11 @@ func NewMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 func TestSQL_CreateUser(t *testing.T) {
 	log.SetOutput(io.Discard)
 	s, mock := FakeNewAuth(t)
-	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
 		Password: "test123",
 		NickName: "test",
-		FullName: &test_fullname,
+		FullName: "test and test",
 	}
 	mock.ExpectBegin()
 	mock.ExpectExec(CreateUser).
@@ -53,12 +52,11 @@ func TestSQL_CreateUser(t *testing.T) {
 func TestSQL_CreateUserError(t *testing.T) {
 	log.SetOutput(io.Discard)
 	s, mock := FakeNewAuth(t)
-	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
 		Password: "test123",
 		NickName: "test",
-		FullName: &test_fullname,
+		FullName: "test and test",
 	}
 	mock.ExpectBegin()
 	mock.ExpectExec(CreateUser).
@@ -73,12 +71,11 @@ func TestSQL_CreateUserError(t *testing.T) {
 func TestSQL_ReadUser(t *testing.T) {
 	log.SetOutput(io.Discard)
 	s, mock := FakeNewAuth(t)
-	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
 		Password: "test123",
 		NickName: "test",
-		FullName: &test_fullname,
+		FullName: "test and test",
 	}
 	hashed_Pwd, err := HashPassword(data.Password)
 	assert.Nil(t, err)
@@ -97,12 +94,11 @@ func TestSQL_ReadUser(t *testing.T) {
 func TestSQL_ReadUserError(t *testing.T) {
 	log.SetOutput(io.Discard)
 	s, mock := FakeNewAuth(t)
-	test_fullname := "test and test"
 	data := &models.User{
 		Email:    "test@test.com",
 		Password: "test123",
 		NickName: "test",
-		FullName: &test_fullname,
+		FullName: "test and test",
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery(ReadUser).
