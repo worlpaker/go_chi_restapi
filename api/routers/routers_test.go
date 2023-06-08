@@ -127,7 +127,7 @@ func TestRegister(t *testing.T) {
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
 			mock.ExpectBegin()
-			mock.ExpectExec(pqdb.Sql_createuser).
+			mock.ExpectExec(pqdb.CreateUser).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 			mock.ExpectCommit()
 			databuf := ConvertDatatoBuf(t, k.data)
@@ -188,10 +188,10 @@ func TestRegisterError(t *testing.T) {
 			//test registered email
 			if k.sql {
 				mock.ExpectBegin()
-				mock.ExpectExec(pqdb.Sql_createuser).
+				mock.ExpectExec(pqdb.CreateUser).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
-				err := s.Handlers.DB.Postgres.SQL_CreateUser(k.data)
+				err := s.Handlers.DB.Postgres.CreateUser(k.data)
 				assert.Nil(t, err)
 			}
 			databuf := ConvertDatatoBuf(t, k.data)
@@ -257,7 +257,7 @@ func TestLogin(t *testing.T) {
 			rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
 				AddRow(k.data.Email, pwd, k.data.NickName, k.data.FullName)
 			mock.ExpectBegin()
-			mock.ExpectQuery(pqdb.Sql_readuser).
+			mock.ExpectQuery(pqdb.ReadUser).
 				WithArgs(k.data.Email).
 				WillReturnRows(rows)
 			mock.ExpectCommit()
@@ -299,16 +299,16 @@ func TestLoginError(t *testing.T) {
 			//test wrong password
 			if k.sql {
 				mock.ExpectBegin()
-				mock.ExpectExec(pqdb.Sql_createuser).
+				mock.ExpectExec(pqdb.CreateUser).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
-				err := s.Handlers.DB.Postgres.SQL_CreateUser(k.data)
+				err := s.Handlers.DB.Postgres.CreateUser(k.data)
 				assert.Nil(t, err)
 				pwd, _ := pqdb.HashPassword(k.data.Password + "fails.")
 				rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
 					AddRow(k.data.Email, pwd, k.data.NickName, k.data.FullName)
 				mock.ExpectBegin()
-				mock.ExpectQuery(pqdb.Sql_readuser).
+				mock.ExpectQuery(pqdb.ReadUser).
 					WithArgs(k.data.Email).
 					WillReturnRows(rows)
 				mock.ExpectRollback()
@@ -372,7 +372,7 @@ func TestBioPublic(t *testing.T) {
 			rows := sqlmock.NewRows([]string{"Info"}).
 				AddRow(k.data.Info)
 			mock.ExpectBegin()
-			mock.ExpectQuery(pqdb.Sql_readbio).
+			mock.ExpectQuery(pqdb.ReadBio).
 				WithArgs(k.data.NickName).
 				WillReturnRows(rows)
 			mock.ExpectCommit()
@@ -419,7 +419,7 @@ func TestBioPublicError(t *testing.T) {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
 			if k.sql {
 				mock.ExpectBegin()
-				mock.ExpectQuery(pqdb.Sql_readbio).
+				mock.ExpectQuery(pqdb.ReadBio).
 					WithArgs(k.data.NickName).
 					WillReturnError(sql.ErrConnDone)
 				mock.ExpectRollback()
@@ -474,7 +474,7 @@ func TestProfile(t *testing.T) {
 			rows := sqlmock.NewRows([]string{"Info"}).
 				AddRow(k.bio.Info)
 			mock.ExpectBegin()
-			mock.ExpectQuery(pqdb.Sql_readbio).
+			mock.ExpectQuery(pqdb.ReadBio).
 				WithArgs(k.data.NickName).
 				WillReturnRows(rows)
 			mock.ExpectCommit()
@@ -540,7 +540,7 @@ func TestProfileError(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/profile", nil)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
-				mock.ExpectQuery(pqdb.Sql_readbio).
+				mock.ExpectQuery(pqdb.ReadBio).
 					WithArgs(k.data.NickName).
 					WillReturnError(sql.ErrConnDone)
 				mock.ExpectRollback()
@@ -644,7 +644,7 @@ func TestAddBio(t *testing.T) {
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
 			mock.ExpectBegin()
-			mock.ExpectExec(pqdb.Sql_addbio).
+			mock.ExpectExec(pqdb.AddBio).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 			mock.ExpectCommit()
 			databuf := ConvertDatatoBuf(t, k.bio)
@@ -723,7 +723,7 @@ func TestAddBioError(t *testing.T) {
 			req, _ := http.NewRequest("POST", "/profile/info", databuf)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
-				mock.ExpectExec(pqdb.Sql_addbio).
+				mock.ExpectExec(pqdb.AddBio).
 					WillReturnError(sql.ErrConnDone)
 				mock.ExpectRollback()
 				token, err := token.GenerateJWT(k.data)
@@ -811,7 +811,7 @@ func TestEditBio(t *testing.T) {
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
 			mock.ExpectBegin()
-			mock.ExpectExec(pqdb.Sql_editbio).
+			mock.ExpectExec(pqdb.EditBio).
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			mock.ExpectCommit()
 			databuf := ConvertDatatoBuf(t, k.bio)
@@ -907,7 +907,7 @@ func TestEditBioError(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
-				mock.ExpectExec(pqdb.Sql_editbio).
+				mock.ExpectExec(pqdb.EditBio).
 					WillReturnError(sql.ErrConnDone)
 				mock.ExpectRollback()
 				token, err := token.GenerateJWT(k.data)
@@ -1000,7 +1000,7 @@ func TestDeleteBio(t *testing.T) {
 			req, _ := http.NewRequest("DELETE", "/profile/info", nil)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
-				mock.ExpectPrepare(pqdb.Sql_deletebio).
+				mock.ExpectPrepare(pqdb.DeleteBio).
 					ExpectExec().
 					WithArgs(k.data.NickName).
 					WillReturnResult(sqlmock.NewResult(0, 1))
@@ -1065,7 +1065,7 @@ func TestDeleteBioError(t *testing.T) {
 			req, _ := http.NewRequest("DELETE", "/profile/info", nil)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
-				mock.ExpectPrepare(pqdb.Sql_deletebio).
+				mock.ExpectPrepare(pqdb.DeleteBio).
 					ExpectExec().
 					WithArgs(k.data.NickName).
 					WillReturnError(sql.ErrConnDone)

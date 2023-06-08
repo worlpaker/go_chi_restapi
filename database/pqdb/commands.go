@@ -14,8 +14,8 @@ import (
 
 // SQL Command Functions
 
-// SQL_CreateUser creates a new user in the SQL database.
-func (s *Server) SQL_CreateUser(user *models.User) error {
+// CreateUser creates a new user in the SQL database.
+func (s *Server) CreateUser(user *models.User) error {
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
 		return err
@@ -27,13 +27,13 @@ func (s *Server) SQL_CreateUser(user *models.User) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, err = tx.ExecContext(ctx, Sql_createuser,
+	_, err = tx.ExecContext(ctx, CreateUser,
 		user.Email, hashed_Pwd, user.NickName, user.FullName)
 	return err
 }
 
-// SQL_ReadUser reads user information from the SQL database and returns a JWT token.
-func (s *Server) SQL_ReadUser(user *models.User) (string, error) {
+// ReadUser reads user information from the SQL database and returns a JWT token.
+func (s *Server) ReadUser(user *models.User) (string, error) {
 	var dbuser models.User
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
@@ -42,7 +42,7 @@ func (s *Server) SQL_ReadUser(user *models.User) (string, error) {
 	defer HandleTransaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err = tx.QueryRowContext(ctx, Sql_readuser, user.Email).Scan(
+	if err = tx.QueryRowContext(ctx, ReadUser, user.Email).Scan(
 		&dbuser.Email, &dbuser.Password, &dbuser.NickName, &dbuser.FullName); Log.Err(err) {
 		return "", err
 	}
@@ -56,8 +56,8 @@ func (s *Server) SQL_ReadUser(user *models.User) (string, error) {
 	return t, nil
 }
 
-// SQL_AddBio adds a new profile bio to the SQL database.
-func (s *Server) SQL_AddBio(user *models.ProfileBio) error {
+// AddBio adds a new profile bio to the SQL database.
+func (s *Server) AddBio(user *models.ProfileBio) error {
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
 		return err
@@ -65,12 +65,12 @@ func (s *Server) SQL_AddBio(user *models.ProfileBio) error {
 	defer HandleTransaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, err = tx.ExecContext(ctx, Sql_addbio, user.NickName, user.Info)
+	_, err = tx.ExecContext(ctx, AddBio, user.NickName, user.Info)
 	return err
 }
 
-// SQL_ReadBio retrieves the profile bio information from the SQL database based on the provided nickname.
-func (s *Server) SQL_ReadBio(nickname string) (string, error) {
+// ReadBio retrieves the profile bio information from the SQL database based on the provided nickname.
+func (s *Server) ReadBio(nickname string) (string, error) {
 	var dbuser models.ProfileBio
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
@@ -79,15 +79,15 @@ func (s *Server) SQL_ReadBio(nickname string) (string, error) {
 	defer HandleTransaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err = tx.QueryRowContext(ctx, Sql_readbio, nickname).
+	if err = tx.QueryRowContext(ctx, ReadBio, nickname).
 		Scan(&dbuser.Info); Log.Err(err) && err != sql.ErrNoRows {
 		return "", err
 	}
 	return dbuser.Info, nil
 }
 
-// SQL_EditBio updates the profile bio in the SQL database with the provided information.
-func (s *Server) SQL_EditBio(user *models.ProfileBio) error {
+// EditBio updates the profile bio in the SQL database with the provided information.
+func (s *Server) EditBio(user *models.ProfileBio) error {
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
 		return err
@@ -95,12 +95,12 @@ func (s *Server) SQL_EditBio(user *models.ProfileBio) error {
 	defer HandleTransaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, err = tx.ExecContext(ctx, Sql_editbio, user.NickName, user.Info)
+	_, err = tx.ExecContext(ctx, EditBio, user.NickName, user.Info)
 	return err
 }
 
-// SQL_DeleteBio deletes the profile bio from the SQL database based on the provided nickname.
-func (s *Server) SQL_DeleteBio(nickname string) error {
+// DeleteBio deletes the profile bio from the SQL database based on the provided nickname.
+func (s *Server) DeleteBio(nickname string) error {
 	//example of using prepare context
 	//Why? - When you expect to execute the same SQL repeatedly.
 	//typically containing placeholders but with no actual parameter values
@@ -115,7 +115,7 @@ func (s *Server) SQL_DeleteBio(nickname string) error {
 	defer HandleTransaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	stmt, err := tx.PrepareContext(ctx, Sql_deletebio)
+	stmt, err := tx.PrepareContext(ctx, DeleteBio)
 	if Log.Err(err) {
 		return err
 	}

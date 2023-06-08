@@ -41,10 +41,10 @@ func TestSQL_CreateUser(t *testing.T) {
 		FullName: &test_fullname,
 	}
 	mock.ExpectBegin()
-	mock.ExpectExec(Sql_createuser).
+	mock.ExpectExec(CreateUser).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	err := s.SQL_CreateUser(data)
+	err := s.CreateUser(data)
 	assert.Nil(t, err)
 	// we make sure that all expectations were met
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -61,10 +61,10 @@ func TestSQL_CreateUserError(t *testing.T) {
 		FullName: &test_fullname,
 	}
 	mock.ExpectBegin()
-	mock.ExpectExec(Sql_createuser).
+	mock.ExpectExec(CreateUser).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
-	err := s.SQL_CreateUser(data)
+	err := s.CreateUser(data)
 	assert.Error(t, err)
 	// we make sure that all expectations were met
 	assert.Nil(t, mock.ExpectationsWereMet())
@@ -85,11 +85,11 @@ func TestSQL_ReadUser(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
 		AddRow(data.Email, hashed_Pwd, data.NickName, data.FullName)
 	mock.ExpectBegin()
-	mock.ExpectQuery(Sql_readuser).
+	mock.ExpectQuery(ReadUser).
 		WithArgs(data.Email).
 		WillReturnRows(rows)
 	mock.ExpectCommit()
-	_, err = s.SQL_ReadUser(data)
+	_, err = s.ReadUser(data)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -105,11 +105,11 @@ func TestSQL_ReadUserError(t *testing.T) {
 		FullName: &test_fullname,
 	}
 	mock.ExpectBegin()
-	mock.ExpectQuery(Sql_readuser).
+	mock.ExpectQuery(ReadUser).
 		WithArgs(data.Email).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
-	_, err := s.SQL_ReadUser(data)
+	_, err := s.ReadUser(data)
 	assert.Error(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -122,11 +122,11 @@ func TestSQL_AddBio(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectExec(Sql_addbio).
+	mock.ExpectExec(AddBio).
 		WithArgs(data.NickName, data.Info).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	err := s.SQL_AddBio(data)
+	err := s.AddBio(data)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -139,11 +139,11 @@ func TestSQL_AddBioError(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectExec(Sql_addbio).
+	mock.ExpectExec(AddBio).
 		WithArgs(data.NickName, data.Info).
 		WillReturnError(sql.ErrConnDone)
 	mock.ExpectRollback()
-	err := s.SQL_AddBio(data)
+	err := s.AddBio(data)
 	assert.Error(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -158,11 +158,11 @@ func TestSQL_ReadBio(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"Info"}).
 		AddRow(data.Info)
 	mock.ExpectBegin()
-	mock.ExpectQuery(Sql_readbio).
+	mock.ExpectQuery(ReadBio).
 		WithArgs(data.NickName).
 		WillReturnRows(rows)
 	mock.ExpectCommit()
-	_, err := s.SQL_ReadBio(data.NickName)
+	_, err := s.ReadBio(data.NickName)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -175,20 +175,20 @@ func TestSQL_ReadBioError(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectQuery(Sql_readbio).
+	mock.ExpectQuery(ReadBio).
 		WithArgs(data.NickName).
 		WillReturnError(errors.New("new error"))
 	mock.ExpectRollback()
-	_, err := s.SQL_ReadBio(data.NickName)
+	_, err := s.ReadBio(data.NickName)
 	assert.Error(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 	//test if no rows
 	mock.ExpectBegin()
-	mock.ExpectQuery(Sql_readbio).
+	mock.ExpectQuery(ReadBio).
 		WithArgs(data.NickName).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
-	_, err = s.SQL_ReadBio(data.NickName)
+	_, err = s.ReadBio(data.NickName)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -201,11 +201,11 @@ func TestSQL_EditBio(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectExec(Sql_editbio).
+	mock.ExpectExec(EditBio).
 		WithArgs(data.NickName, data.Info).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	err := s.SQL_EditBio(data)
+	err := s.EditBio(data)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -218,11 +218,11 @@ func TestSQL_EditBioError(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectExec(Sql_editbio).
+	mock.ExpectExec(EditBio).
 		WithArgs(data.NickName, data.Info).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
-	err := s.SQL_EditBio(data)
+	err := s.EditBio(data)
 	assert.Error(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -235,12 +235,12 @@ func TestSQL_DeleteBio(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectPrepare(Sql_deletebio).
+	mock.ExpectPrepare(DeleteBio).
 		ExpectExec().
 		WithArgs(data.NickName).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	err := s.SQL_DeleteBio(data.NickName)
+	err := s.DeleteBio(data.NickName)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
@@ -253,12 +253,12 @@ func TestSQL_DeleteBioError(t *testing.T) {
 		Info:     "test info",
 	}
 	mock.ExpectBegin()
-	mock.ExpectPrepare(Sql_deletebio).
+	mock.ExpectPrepare(DeleteBio).
 		ExpectExec().
 		WithArgs(data.NickName).
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
-	err := s.SQL_DeleteBio(data.NickName)
+	err := s.DeleteBio(data.NickName)
 	assert.Error(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
