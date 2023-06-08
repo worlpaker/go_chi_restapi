@@ -28,17 +28,6 @@ func ReadJSON[T GenM](r *http.Request) (data T, err error) {
 	return
 }
 
-// IsNull checks whether any of the given parameters is an empty string
-func IsNull(m ...string) (ok bool) {
-	for i := range m {
-		if m[i] == "" {
-			Log.Err(ErrMissingRequiredParams)
-			ok = true
-			return
-		}
-	}
-	return
-}
 
 // Render helper function to handle success response
 func Render(w http.ResponseWriter, HTTPStatusCode int, v any) error {

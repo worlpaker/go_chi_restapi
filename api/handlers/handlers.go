@@ -3,6 +3,7 @@ package handlers
 import (
 	"backend/models"
 	Log "backend/pkg/helpers/log"
+	"backend/pkg/helpers/param"
 	"backend/pkg/token"
 	"fmt"
 	"net/http"
@@ -39,7 +40,7 @@ func (s *Server) Home(w http.ResponseWriter, r *http.Request) {
 // @Router /register [post]
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	user, err := ReadJSON[*models.User](r)
-	if Log.Err(err) || IsNull(user.Email, user.Password, user.NickName) {
+	if Log.Err(err) || user.ValidateRegister() {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -77,7 +78,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 // @Router /login [post]
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := ReadJSON[*models.User](r)
-	if Log.Err(err) || IsNull(user.Email, user.Password) {
+	if Log.Err(err) || user.ValidateLogin() {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -112,7 +113,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 // @Router /info/{nickname} [get]
 func (s *Server) BioPublic(w http.ResponseWriter, r *http.Request) {
 	nickname := chi.URLParam(r, "nickname")
-	if IsNull(nickname) {
+	if param.IsNull(nickname) {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -177,7 +178,7 @@ func (s *Server) Profile(w http.ResponseWriter, r *http.Request) {
 // @Router /profile/info [post]
 func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 	bio, err := ReadJSON[*models.ProfileBio](r)
-	if Log.Err(err) || IsNull(bio.Info) {
+	if Log.Err(err) || bio.Validate() {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
@@ -224,7 +225,7 @@ func (s *Server) AddBio(w http.ResponseWriter, r *http.Request) {
 // @Router /profile/info [put]
 func (s *Server) EditBio(w http.ResponseWriter, r *http.Request) {
 	bio, err := ReadJSON[*models.ProfileBio](r)
-	if Log.Err(err) || IsNull(bio.Info) {
+	if Log.Err(err) || bio.Validate() {
 		ErrResponse(w, http.StatusBadRequest)
 		return
 	}
