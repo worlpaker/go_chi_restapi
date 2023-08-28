@@ -28,21 +28,33 @@ func ReadJSON[T GenM](r *http.Request) (data T, err error) {
 	return
 }
 
+// Render helper function to handle success response.
+func Render(w http.ResponseWriter, code int, v any) error {
+	w.WriteHeader(code)
 
-// Render helper function to handle success response
-func Render(w http.ResponseWriter, HTTPStatusCode int, v any) error {
-	w.WriteHeader(HTTPStatusCode)
-	return json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, err.Error(), 500)
+		return err
+	}
+
+	return nil
 }
 
 // ErrResponse helper function to handle error request
-func ErrResponse(w http.ResponseWriter, HTTPStatusCode int) error {
-	w.WriteHeader(HTTPStatusCode)
+func ErrResponse(w http.ResponseWriter, code int) error {
+	w.WriteHeader(code)
+	// print status for the tests
 	msg := render{
-		"status": HTTPStatusCode,
-		"error":  http.StatusText(HTTPStatusCode),
+		"status": code,
+		"error":  http.StatusText(code),
 	}
-	return json.NewEncoder(w).Encode(msg)
+
+	if err := json.NewEncoder(w).Encode(msg); err != nil {
+		http.Error(w, err.Error(), 500)
+		return err
+	}
+
+	return nil
 }
 
 // SetTokenCookie sets a cookie named "Token" in the provided token value.
