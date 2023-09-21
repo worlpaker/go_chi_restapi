@@ -2,7 +2,7 @@ package middlewares
 
 import (
 	"backend/models"
-	"backend/pkg/token"
+	"backend/token"
 	"net/http"
 	"net/http/httptest"
 	"testing"

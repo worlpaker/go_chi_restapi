@@ -6,7 +6,7 @@ import (
 	"backend/database"
 	"backend/database/pqdb"
 	"backend/models"
-	"backend/pkg/token"
+	"backend/token"
 	"bytes"
 	"database/sql"
 	"encoding/json"

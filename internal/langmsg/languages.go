@@ -1,8 +1,8 @@
-package msglang
+package langmsg
 
 import (
 	"backend/models"
-	Log "backend/pkg/helpers/log"
+	Log "backend/internal/log"
 	_ "embed"
 	"encoding/json"
 )

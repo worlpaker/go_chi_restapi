@@ -2,8 +2,8 @@ package pqdb
 
 import (
 	"backend/models"
-	Log "backend/pkg/helpers/log"
-	"backend/pkg/token"
+	Log "backend/internal/log"
+	"backend/token"
 	"context"
 	"database/sql"
 	"time"

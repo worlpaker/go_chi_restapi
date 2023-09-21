@@ -3,7 +3,7 @@ package token
 import (
 	"backend/config"
 	"backend/models"
-	Log "backend/pkg/helpers/log"
+	Log "backend/internal/log"
 	"errors"
 	"fmt"
 	"net/http"

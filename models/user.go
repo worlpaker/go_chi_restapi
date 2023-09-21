@@ -1,7 +1,7 @@
 package models
 
 import (
-	"backend/pkg/helpers/param"
+	"backend/internal/param"
 )
 
 type User struct {

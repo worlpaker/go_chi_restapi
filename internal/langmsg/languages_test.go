@@ -1,4 +1,4 @@
-package msglang
+package langmsg
 
 import (
 	"testing"

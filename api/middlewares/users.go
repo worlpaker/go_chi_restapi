@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	Log "backend/pkg/helpers/log"
-	"backend/pkg/token"
+	Log "backend/internal/log"
+	"backend/token"
 
 	"net/http"
 )

@@ -2,7 +2,7 @@ package pqdb
 
 import (
 	"backend/config"
-	Log "backend/pkg/helpers/log"
+	Log "backend/internal/log"
 	"database/sql"
 	"log"
 

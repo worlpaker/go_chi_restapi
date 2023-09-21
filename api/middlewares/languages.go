@@ -1,9 +1,9 @@
 package middlewares
 
 import (
+	"backend/internal/langmsg"
+	Log "backend/internal/log"
 	"backend/models"
-	Log "backend/pkg/helpers/log"
-	"backend/pkg/msglang"
 	"context"
 
 	"net/http"
@@ -14,7 +14,7 @@ import (
 func Languages(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang_code := r.Header.Get("Accept-Language")
-		language, err := msglang.GetLang(lang_code)
+		language, err := langmsg.GetLang(lang_code)
 		if Log.Err(err) {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return

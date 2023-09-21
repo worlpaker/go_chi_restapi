@@ -1,7 +1,7 @@
 package pqdb
 
 import (
-	Log "backend/pkg/helpers/log"
+	Log "backend/internal/log"
 	"database/sql"
 
 	"golang.org/x/crypto/bcrypt"

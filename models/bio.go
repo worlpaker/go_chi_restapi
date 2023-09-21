@@ -1,6 +1,6 @@
 package models
 
-import "backend/pkg/helpers/param"
+import "backend/internal/param"
 
 type ProfileBio struct {
 	NickName string `json:"nickname"`

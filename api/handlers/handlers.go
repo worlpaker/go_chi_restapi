@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"backend/models"
-	Log "backend/pkg/helpers/log"
-	"backend/pkg/helpers/param"
-	"backend/pkg/token"
+	Log "backend/internal/log"
+	"backend/internal/param"
+	"backend/token"
 	"fmt"
 	"net/http"
 

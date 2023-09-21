@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"backend/models"
-	Log "backend/pkg/helpers/log"
+	Log "backend/internal/log"
 	"encoding/json"
 	"net/http"
 	"time"
