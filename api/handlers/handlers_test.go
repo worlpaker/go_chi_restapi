@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	chirender "github.com/go-chi/render"
@@ -26,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func ExecuteRequest(req *http.Request, s *chi.Mux) *httptest.ResponseRecorder {
+func executeRequest(req *http.Request, s *chi.Mux) *httptest.ResponseRecorder {
 	log.SetOutput(io.Discard)
 	rr := httptest.NewRecorder()
 	s.ServeHTTP(rr, req)
@@ -65,9 +66,9 @@ func setupRouters(s *Server) *chi.Mux {
 	return r
 }
 
-func FakeNewServer(t *testing.T) (*chi.Mux, *Server, sqlmock.Sqlmock) {
+func fakeNewServer(t *testing.T) (*chi.Mux, *Server, sqlmock.Sqlmock) {
 	log.SetOutput(io.Discard)
-	d, m := NewMock(t)
+	d, m := newMock(t)
 	s := &Server{
 		DB: &database.DB{
 			Postgres: &pqdb.Server{
@@ -79,7 +80,7 @@ func FakeNewServer(t *testing.T) (*chi.Mux, *Server, sqlmock.Sqlmock) {
 	return r, s, m
 }
 
-func NewMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
+func newMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	log.SetOutput(io.Discard)
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
@@ -88,7 +89,7 @@ func NewMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	return db, mock
 }
 
-func ConvertDatatoBuf(t *testing.T, data any) *bytes.Buffer {
+func convertDatatoBuf(t *testing.T, data any) *bytes.Buffer {
 	log.SetOutput(io.Discard)
 	databuf := new(bytes.Buffer)
 	if err := json.NewEncoder(databuf).Encode(data); err != nil {
@@ -97,7 +98,7 @@ func ConvertDatatoBuf(t *testing.T, data any) *bytes.Buffer {
 	return databuf
 }
 
-func FakeGenerateJWT(t *testing.T, user *models.User, signingkey []byte,
+func fakeGenerateJWT(t *testing.T, user *models.User, signingkey []byte,
 	method *jwt.SigningMethodHMAC, exp int64) (string, error) {
 	log.SetOutput(io.Discard)
 	jwt_token := jwt.New(method)
@@ -113,44 +114,54 @@ func FakeGenerateJWT(t *testing.T, user *models.User, signingkey []byte,
 
 func TestHome(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, _ := FakeNewServer(t)
+	r, _, _ := fakeNewServer(t)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	assert.Nil(t, err)
-	response := ExecuteRequest(req, r)
+	response := executeRequest(req, r)
 	assert.Equal(t, http.StatusOK, response.Code)
 }
 
 func TestRegister(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		expected_code int
+		data         *models.User
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "test",
-				FullName: "test and test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
+				FullName: gofakeit.Name(),
 			},
-			expected_code: http.StatusCreated,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusCreated,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
+				FullName: gofakeit.Name(),
 			},
-			expected_code: http.StatusCreated,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusCreated,
 		},
 		{
 			data: &models.User{
-				Email:    "test1@test.com",
-				Password: "test1234568",
-				NickName: "test2",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
+				FullName: gofakeit.Name(),
 			},
-			expected_code: http.StatusCreated,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusCreated,
 		},
 	}
 	for i, k := range data {
@@ -159,11 +170,11 @@ func TestRegister(t *testing.T) {
 			mock.ExpectExec(pqdb.CreateUser).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 			mock.ExpectCommit()
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, err := http.NewRequest("POST", "/register", databuf)
+			databuf := convertDatatoBuf(t, k.data)
+			req, err := http.NewRequest(k.method, k.url, databuf)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -171,44 +182,53 @@ func TestRegister(t *testing.T) {
 
 func TestRegisterError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, s, mock := FakeNewServer(t)
+	r, s, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		sql           bool
-		expected_code int
+		data         *models.User
+		sql          bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "test",
-				FullName: "test and test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
+				FullName: gofakeit.Name(),
 			},
-			sql:           true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusInternalServerError,
 		},
 		{
 			data: &models.User{
-				Password: "test123",
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusBadRequest,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusBadRequest,
 		},
 		{
 			data: &models.User{
-				Email: "test@test.com",
-				Password: `testtesttesttesttest
-				testtesttesttesttesttest
-				testtesttesttesttesttesttesttesttest`,
-				NickName: "test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 100),
+				NickName: gofakeit.Username(),
+				FullName: gofakeit.Name(),
 			},
-			expected_code: http.StatusInternalServerError,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -222,61 +242,73 @@ func TestRegisterError(t *testing.T) {
 				err := s.DB.Postgres.CreateUser(k.data)
 				assert.Nil(t, err)
 			}
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, err := http.NewRequest("POST", "/register", databuf)
+			databuf := convertDatatoBuf(t, k.data)
+			req, err := http.NewRequest(k.method, k.url, databuf)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
 	badJSON := []struct {
-		data          any
-		expected_code int
+		data         any
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
-			data:          "test",
-			expected_code: http.StatusBadRequest,
+			data:         gofakeit.Name(),
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusBadRequest,
 		},
 		{
 			data: &models.ProfileBio{
-				NickName: "test",
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "POST",
+			url:          "/register",
+			expectedCode: http.StatusBadRequest,
 		},
 	}
 	for i, k := range badJSON {
 		t.Run(fmt.Sprintln("no: ", len(data)+i+1), func(t *testing.T) {
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, err := http.NewRequest("POST", "/register", databuf)
+			databuf := convertDatatoBuf(t, k.data)
+			req, err := http.NewRequest(k.method, k.url, databuf)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
 
 func TestLogin(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		expected_code int
+		data         *models.User
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
-			expected_code: http.StatusOK,
+			method:       "POST",
+			url:          "/login",
+			expectedCode: http.StatusOK,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusOK,
+			method:       "POST",
+			url:          "/login",
+			expectedCode: http.StatusOK,
 		},
 	}
 	for i, k := range data {
@@ -289,10 +321,10 @@ func TestLogin(t *testing.T) {
 				WithArgs(k.data.Email).
 				WillReturnRows(rows)
 			mock.ExpectCommit()
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, _ := http.NewRequest("POST", "/login", databuf)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			databuf := convertDatatoBuf(t, k.data)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -300,26 +332,32 @@ func TestLogin(t *testing.T) {
 
 func TestLoginError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, s, mock := FakeNewServer(t)
+	r, s, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		sql           bool
-		expected_code int
+		data         *models.User
+		sql          bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Password: "test123",
-				NickName: "test",
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "POST",
+			url:          "/login",
+			expectedCode: http.StatusBadRequest,
 		},
 		{
 			data: &models.User{
-				Email:    "test1234@test.com",
-				Password: "test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
-			sql:           true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			method:       "POST",
+			url:          "/login",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -341,58 +379,70 @@ func TestLoginError(t *testing.T) {
 					WillReturnRows(rows)
 				mock.ExpectRollback()
 			}
-			databuf := ConvertDatatoBuf(t, k.data)
+			databuf := convertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("POST", "/login", databuf)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
 	badJSON := []struct {
-		data          any
-		expected_code int
+		data         any
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
-			data:          "test",
-			expected_code: http.StatusBadRequest,
+			data:         gofakeit.Name(),
+			method:       "POST",
+			url:          "/login",
+			expectedCode: http.StatusBadRequest,
 		},
 		{
 			data: &models.ProfileBio{
-				NickName: "test",
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "POST",
+			url:          "/login",
+			expectedCode: http.StatusBadRequest,
 		},
 	}
 	for i, k := range badJSON {
 		t.Run(fmt.Sprintln("no: ", len(data)+i+1), func(t *testing.T) {
-			databuf := ConvertDatatoBuf(t, k.data)
+			databuf := convertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("POST", "/login", databuf)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
 
 func TestBioPublic(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.ProfileBio
-		expected_code int
+		data         *models.ProfileBio
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusOK,
+			method:       "GET",
+			url:          "/info",
+			expectedCode: http.StatusOK,
 		},
 		{
 			data: &models.ProfileBio{
-				NickName: "testnick2",
-				Info:     "1test info22",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusOK,
+			method:       "GET",
+			url:          "/info",
+			expectedCode: http.StatusOK,
 		},
 	}
 	for i, k := range data {
@@ -404,10 +454,10 @@ func TestBioPublic(t *testing.T) {
 				WithArgs(k.data.NickName).
 				WillReturnRows(rows)
 			mock.ExpectCommit()
-			url := fmt.Sprintf("/info/%s", k.data.NickName)
-			req, _ := http.NewRequest("GET", url, nil)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			url := fmt.Sprintf("%s/%s", k.url, k.data.NickName)
+			req, _ := http.NewRequest(k.method, url, nil)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -415,32 +465,40 @@ func TestBioPublic(t *testing.T) {
 
 func TestBioPublicError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.ProfileBio
-		sql           bool
-		expected_code int
+		data         *models.ProfileBio
+		sql          bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.ProfileBio{
 				NickName: "",
-				Info:     "test info",
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusNotFound,
+			method:       "GET",
+			url:          "/info",
+			expectedCode: http.StatusNotFound,
 		},
 		{
 			data: &models.ProfileBio{
-				Info: "test info",
+				Info: gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusNotFound,
+			method:       "GET",
+			url:          "/info",
+			expectedCode: http.StatusNotFound,
 		},
 		{
 			data: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			method:       "GET",
+			url:          "/info",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
@@ -452,10 +510,10 @@ func TestBioPublicError(t *testing.T) {
 					WillReturnError(sql.ErrConnDone)
 				mock.ExpectRollback()
 			}
-			url := fmt.Sprintf("/info/%s", k.data.NickName)
-			req, _ := http.NewRequest("GET", url, nil)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			url := fmt.Sprintf("%s/%s", k.url, k.data.NickName)
+			req, _ := http.NewRequest(k.method, url, nil)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 
 		})
@@ -464,37 +522,43 @@ func TestBioPublicError(t *testing.T) {
 
 func TestProfile(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			cookie:        true,
-			expected_code: http.StatusOK,
+			cookie:       true,
+			method:       "GET",
+			url:          "/profile",
+			expectedCode: http.StatusOK,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			cookie:        true,
-			expected_code: http.StatusOK,
+			cookie:       true,
+			method:       "GET",
+			url:          "/profile",
+			expectedCode: http.StatusOK,
 		},
 	}
 	for i, k := range data {
@@ -506,7 +570,7 @@ func TestProfile(t *testing.T) {
 				WithArgs(k.data.NickName).
 				WillReturnRows(rows)
 			mock.ExpectCommit()
-			req, _ := http.NewRequest("GET", "/profile", nil)
+			req, _ := http.NewRequest(k.method, k.url, nil)
 			if k.cookie {
 				token, err := token.GenerateJWT(k.data)
 				assert.Nil(t, err)
@@ -519,8 +583,8 @@ func TestProfile(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -528,44 +592,50 @@ func TestProfile(t *testing.T) {
 
 func TestProfileError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		sql           bool
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		sql          bool
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusUnauthorized,
+			method:       "GET",
+			url:          "/profile",
+			expectedCode: http.StatusUnauthorized,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			cookie:        true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			cookie:       true,
+			method:       "GET",
+			url:          "/profile",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/profile", nil)
+			req, _ := http.NewRequest(k.method, k.url, nil)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
 				mock.ExpectQuery(pqdb.ReadBio).
@@ -583,8 +653,8 @@ func TestProfileError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -593,6 +663,8 @@ func TestProfileError(t *testing.T) {
 		signingkey []byte
 		method     *jwt.SigningMethodHMAC
 		time       int64
+		urlMethod  string
+		url        string
 		expected   int
 	}{
 		{
@@ -603,6 +675,8 @@ func TestProfileError(t *testing.T) {
 			signingkey: []byte("testfailtoken"),
 			method:     jwt.SigningMethodHS256,
 			time:       time.Now().Add(24 * time.Hour).Unix(),
+			urlMethod:  "GET",
+			url:        "/profile",
 			expected:   http.StatusUnauthorized,
 		},
 		{
@@ -613,13 +687,15 @@ func TestProfileError(t *testing.T) {
 			signingkey: []byte(config.TokenSecret),
 			method:     jwt.SigningMethodHS256,
 			time:       time.Now().Add(-24 * time.Hour).Unix(),
+			urlMethod:  "GET",
+			url:        "/profile",
 			expected:   http.StatusUnauthorized,
 		},
 	}
 	for i, k := range Unauthorized {
 		t.Run(fmt.Sprintln("no: ", len(data)+i+1), func(t *testing.T) {
-			token, _ := FakeGenerateJWT(t, k.data, k.signingkey, k.method, k.time)
-			req, _ := http.NewRequest("GET", "/profile", nil)
+			token, _ := fakeGenerateJWT(t, k.data, k.signingkey, k.method, k.time)
+			req, _ := http.NewRequest(k.urlMethod, k.url, nil)
 			cookie := &http.Cookie{
 				Name:     "Token",
 				Value:    token,
@@ -628,7 +704,7 @@ func TestProfileError(t *testing.T) {
 				Path:     "/",
 			}
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, r)
+			response := executeRequest(req, r)
 			assert.Equal(t, k.expected, response.Code)
 		})
 	}
@@ -636,37 +712,43 @@ func TestProfileError(t *testing.T) {
 
 func TestAddBio(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			cookie:        true,
-			expected_code: http.StatusCreated,
+			cookie:       true,
+			method:       "POST",
+			url:          "/profile/info",
+			expectedCode: http.StatusCreated,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			cookie:        true,
-			expected_code: http.StatusCreated,
+			cookie:       true,
+			method:       "POST",
+			url:          "/profile/info",
+			expectedCode: http.StatusCreated,
 		},
 	}
 	for i, k := range data {
@@ -675,8 +757,8 @@ func TestAddBio(t *testing.T) {
 			mock.ExpectExec(pqdb.AddBio).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 			mock.ExpectCommit()
-			databuf := ConvertDatatoBuf(t, k.bio)
-			req, _ := http.NewRequest("POST", "/profile/info", databuf)
+			databuf := convertDatatoBuf(t, k.bio)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
 			if k.cookie {
 				token, err := token.GenerateJWT(k.data)
 				assert.Nil(t, err)
@@ -689,8 +771,8 @@ func TestAddBio(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -698,57 +780,65 @@ func TestAddBio(t *testing.T) {
 
 func TestAddBioError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		sql           bool
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		sql          bool
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusUnauthorized,
+			method:       "POST",
+			url:          "/profile/info",
+			expectedCode: http.StatusUnauthorized,
 		},
 		{
 			data: &models.User{
-				Email:    "test2@test.com",
-				Password: "test1234",
-				NickName: "testnick2",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick2",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusUnauthorized,
+			method:       "POST",
+			url:          "/profile/info",
+			expectedCode: http.StatusUnauthorized,
 		},
 		{
 			data: &models.User{
-				Email:    "test2@test.com",
-				Password: "test1234",
-				NickName: "testnick2",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick2",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			cookie:        true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			cookie:       true,
+			method:       "POST",
+			url:          "/profile/info",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			databuf := ConvertDatatoBuf(t, k.bio)
-			req, _ := http.NewRequest("POST", "/profile/info", databuf)
+			databuf := convertDatatoBuf(t, k.bio)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
 				mock.ExpectExec(pqdb.AddBio).
@@ -765,20 +855,24 @@ func TestAddBioError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
 	badJSON := []struct {
-		data          *models.User
-		expected_code int
+		data         *models.User
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				NickName: "test",
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "POST",
+			url:          "/profile/info",
+			expectedCode: http.StatusBadRequest,
 		},
 	}
 	for i, k := range badJSON {
@@ -792,48 +886,54 @@ func TestAddBioError(t *testing.T) {
 				MaxAge:   int(time.Hour * 24 * 3),
 				Path:     "/",
 			}
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, _ := http.NewRequest("POST", "/profile/info", databuf)
+			databuf := convertDatatoBuf(t, k.data)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
 
 func TestEditBio(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			cookie:        true,
-			expected_code: http.StatusOK,
+			cookie:       true,
+			method:       "PUT",
+			url:          "/profile/info",
+			expectedCode: http.StatusOK,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			cookie:        true,
-			expected_code: http.StatusOK,
+			cookie:       true,
+			method:       "PUT",
+			url:          "/profile/info",
+			expectedCode: http.StatusOK,
 		},
 	}
 	for i, k := range data {
@@ -842,8 +942,8 @@ func TestEditBio(t *testing.T) {
 			mock.ExpectExec(pqdb.EditBio).
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			mock.ExpectCommit()
-			databuf := ConvertDatatoBuf(t, k.bio)
-			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
+			databuf := convertDatatoBuf(t, k.bio)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
 			if k.cookie {
 				token, err := token.GenerateJWT(k.data)
 				assert.Nil(t, err)
@@ -856,83 +956,60 @@ func TestEditBio(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
-		})
-	}
-	badJSON := []struct {
-		data          *models.User
-		expected_code int
-	}{
-		{
-			data: &models.User{
-				NickName: "test",
-			},
-			expected_code: http.StatusBadRequest,
-		},
-	}
-	for i, k := range badJSON {
-		t.Run(fmt.Sprintln("no: ", len(data)+i+1), func(t *testing.T) {
-			token, err := token.GenerateJWT(k.data)
-			assert.Nil(t, err)
-			cookie := &http.Cookie{
-				Name:     "Token",
-				Value:    token,
-				HttpOnly: false,
-				MaxAge:   int(time.Hour * 24 * 3),
-				Path:     "/",
-			}
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
-			req.AddCookie(cookie)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
 }
 
 func TestEditBioError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		sql           bool
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		sql          bool
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusUnauthorized,
+			method:       "PUT",
+			url:          "/profile/info",
+			expectedCode: http.StatusUnauthorized,
 		},
 		{
 			data: &models.User{
-				Email:    "test2@test.com",
-				Password: "test1234",
-				NickName: "testnick2",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick2",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			cookie:        true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			cookie:       true,
+			method:       "PUT",
+			url:          "/profile/info",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			databuf := ConvertDatatoBuf(t, k.bio)
-			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
+			databuf := convertDatatoBuf(t, k.bio)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
 				mock.ExpectExec(pqdb.EditBio).
@@ -949,20 +1026,24 @@ func TestEditBioError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
 	badJSON := []struct {
-		data          *models.User
-		expected_code int
+		data         *models.User
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				NickName: "test",
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusBadRequest,
+			method:       "PUT",
+			url:          "/profile/info",
+			expectedCode: http.StatusBadRequest,
 		},
 	}
 	for i, k := range badJSON {
@@ -976,56 +1057,62 @@ func TestEditBioError(t *testing.T) {
 				MaxAge:   int(time.Hour * 24 * 3),
 				Path:     "/",
 			}
-			databuf := ConvertDatatoBuf(t, k.data)
-			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
+			databuf := convertDatatoBuf(t, k.data)
+			req, _ := http.NewRequest(k.method, k.url, databuf)
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
 
 func TestDeleteBio(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		sql           bool
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		sql          bool
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			cookie:        true,
-			expected_code: http.StatusOK,
+			sql:          true,
+			cookie:       true,
+			method:       "DELETE",
+			url:          "/profile/info",
+			expectedCode: http.StatusOK,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			cookie:        true,
-			expected_code: http.StatusOK,
+			sql:          true,
+			cookie:       true,
+			method:       "DELETE",
+			url:          "/profile/info",
+			expectedCode: http.StatusOK,
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/profile/info", nil)
+			req, _ := http.NewRequest(k.method, k.url, nil)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
 				mock.ExpectPrepare(pqdb.DeleteBio).
@@ -1044,8 +1131,8 @@ func TestDeleteBio(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -1053,44 +1140,50 @@ func TestDeleteBio(t *testing.T) {
 
 func TestDeleteBioError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, mock := FakeNewServer(t)
+	r, _, mock := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		bio           *models.ProfileBio
-		sql           bool
-		cookie        bool
-		expected_code int
+		data         *models.User
+		bio          *models.ProfileBio
+		sql          bool
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			expected_code: http.StatusUnauthorized,
+			method:       "DELETE",
+			url:          "/profile/info",
+			expectedCode: http.StatusUnauthorized,
 		},
 		{
 			data: &models.User{
-				Email:    "test2@test.com",
-				Password: "test123",
-				NickName: "testnick2",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
 			bio: &models.ProfileBio{
-				NickName: "testnick2",
-				Info:     "test info",
+				NickName: gofakeit.Username(),
+				Info:     gofakeit.LoremIpsumWord(),
 			},
-			sql:           true,
-			cookie:        true,
-			expected_code: http.StatusInternalServerError,
+			sql:          true,
+			cookie:       true,
+			method:       "DELETE",
+			url:          "/profile/info",
+			expectedCode: http.StatusInternalServerError,
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/profile/info", nil)
+			req, _ := http.NewRequest(k.method, k.url, nil)
 			if k.cookie && k.sql {
 				mock.ExpectBegin()
 				mock.ExpectPrepare(pqdb.DeleteBio).
@@ -1108,51 +1201,57 @@ func TestDeleteBioError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, r)
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
 
 func TestLogout(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, _ := FakeNewServer(t)
+	r, _, _ := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		expected_code int
-		expected_msg  map[string]interface{}
-		accept_lang   string
-		cookie        bool
+		data         *models.User
+		expectedMsg  map[string]interface{}
+		acceptLang   string
+		cookie       bool
+		method       string
+		url          string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
-			expected_code: http.StatusOK,
-			expected_msg: map[string]interface{}{
+			expectedMsg: map[string]interface{}{
 				"message": "successfully logged out",
 			},
-			accept_lang: "en-US,en;q=0.5",
-			cookie:      true,
+			acceptLang:   "en-US,en;q=0.5",
+			cookie:       true,
+			method:       "POST",
+			url:          "/profile/logout",
+			expectedCode: http.StatusOK,
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				Password: "test123",
-				NickName: "test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
+				NickName: gofakeit.Username(),
 			},
-			expected_code: http.StatusOK,
-			expected_msg: map[string]interface{}{
+			expectedMsg: map[string]interface{}{
 				"message": "başarıyla çıkış yapıldı",
 			},
-			accept_lang: "tr-TR,tr;q=0.9",
-			cookie:      true,
+			acceptLang:   "tr-TR,tr;q=0.9",
+			cookie:       true,
+			method:       "POST",
+			url:          "/profile/logout",
+			expectedCode: http.StatusOK,
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			req, _ := http.NewRequest("POST", "/profile/logout", nil)
+			req, _ := http.NewRequest(k.method, k.url, nil)
 			if k.cookie {
 				token, _ := token.GenerateJWT(k.data)
 				cookie := &http.Cookie{
@@ -1163,43 +1262,47 @@ func TestLogout(t *testing.T) {
 					Path:     "/",
 				}
 				req.AddCookie(cookie)
-				req.Header.Add("Accept-Language", k.accept_lang)
+				req.Header.Add("Accept-Language", k.acceptLang)
 			}
-			response := ExecuteRequest(req, r)
-			expected_body, _ := json.Marshal(&k.expected_msg)
-			assert.JSONEq(t, string(expected_body), response.Body.String())
-			assert.Equal(t, k.expected_code, response.Code)
+			response := executeRequest(req, r)
+			expectedBody, _ := json.Marshal(&k.expectedMsg)
+			assert.JSONEq(t, string(expectedBody), response.Body.String())
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
 
 func TestLogoutError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	r, _, _ := FakeNewServer(t)
+	r, _, _ := fakeNewServer(t)
 	data := []struct {
-		data          *models.User
-		expected_code int
-		expected_body string
-		cookie        bool
+		data         *models.User
+		cookie       bool
+		method       string
+		url          string
+		expectedBody string
+		expectedCode int
 	}{
 		{
 			data: &models.User{
-				Email:    "test1234@test.com",
-				Password: "test",
+				Email:    gofakeit.Email(),
+				Password: gofakeit.Password(true, true, true, true, false, 10),
 			},
-			expected_code: http.StatusUnauthorized,
-			expected_body: "Unauthorized\n",
-			cookie:        false,
+			cookie:       false,
+			method:       "POST",
+			url:          "/profile/logout",
+			expectedCode: http.StatusUnauthorized,
+			expectedBody: "Unauthorized\n",
 		},
 	}
 	for i, k := range data {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
 			req, err := http.NewRequest("POST", "/profile/logout", nil)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, r)
+			response := executeRequest(req, r)
 			assert.Nil(t, err)
-			assert.Equal(t, k.expected_body, response.Body.String())
-			assert.Equal(t, k.expected_code, response.Code)
+			assert.Equal(t, k.expectedBody, response.Body.String())
+			assert.Equal(t, k.expectedCode, response.Code)
 		})
 	}
 }
