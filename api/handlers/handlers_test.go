@@ -1,7 +1,7 @@
-package routers
+package handlers
 
 import (
-	"backend/api/handlers"
+	"backend/api/middlewares"
 	"backend/config"
 	"backend/database"
 	"backend/database/pqdb"
@@ -20,6 +20,8 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	chirender "github.com/go-chi/render"
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,22 +33,50 @@ func ExecuteRequest(req *http.Request, s *chi.Mux) *httptest.ResponseRecorder {
 	return rr
 }
 
-func FakeNewServer(t *testing.T) (*Server, sqlmock.Sqlmock) {
-	log.SetOutput(io.Discard)
+func setupRouters(s *Server) *chi.Mux {
 	r := chi.NewRouter()
+	// Middlewares
+	r.Use(
+		middleware.RequestID,
+		middleware.RealIP,
+		middleware.Logger,
+		middleware.Recoverer,
+		chirender.SetContentType(chirender.ContentTypeJSON),
+		middlewares.Languages,
+	)
+	r.Get("/", s.Home)
+	r.Post("/register", s.Register)
+	r.Post("/login", s.Login)
+	r.Get("/info/{nickname}", s.BioPublic)
+	// Usersonly Handlers
+	userRouters := func() chi.Router {
+		r := chi.NewRouter()
+		r.Use(middlewares.UsersOnly)
+		r.Get("/", s.Profile)
+		// user info(bio)
+		r.Post("/info", s.AddBio)
+		r.Put("/info", s.EditBio)
+		r.Delete("/info", s.DeleteBio)
+
+		r.Post("/logout", s.Logout)
+		return r
+	}
+	r.Mount("/profile", userRouters())
+	return r
+}
+
+func FakeNewServer(t *testing.T) (*chi.Mux, *Server, sqlmock.Sqlmock) {
+	log.SetOutput(io.Discard)
 	d, m := NewMock(t)
 	s := &Server{
-		Router: r,
-		Handlers: &handlers.Server{
-			DB: &database.DB{
-				Postgres: &pqdb.Server{
-					Client: d,
-				},
+		DB: &database.DB{
+			Postgres: &pqdb.Server{
+				Client: d,
 			},
 		},
 	}
-	s.SetupRouters()
-	return s, m
+	r := setupRouters(s)
+	return r, s, m
 }
 
 func NewMock(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
@@ -83,16 +113,16 @@ func FakeGenerateJWT(t *testing.T, user *models.User, signingkey []byte,
 
 func TestHome(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, _ := FakeNewServer(t)
+	r, _, _ := FakeNewServer(t)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	assert.Nil(t, err)
-	response := ExecuteRequest(req, s.Router)
+	response := ExecuteRequest(req, r)
 	assert.Equal(t, http.StatusOK, response.Code)
 }
 
 func TestRegister(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		expected_code int
@@ -132,7 +162,7 @@ func TestRegister(t *testing.T) {
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, err := http.NewRequest("POST", "/register", databuf)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -141,7 +171,7 @@ func TestRegister(t *testing.T) {
 
 func TestRegisterError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, s, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		sql           bool
@@ -189,13 +219,13 @@ func TestRegisterError(t *testing.T) {
 				mock.ExpectExec(pqdb.CreateUser).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
-				err := s.Handlers.DB.Postgres.CreateUser(k.data)
+				err := s.DB.Postgres.CreateUser(k.data)
 				assert.Nil(t, err)
 			}
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, err := http.NewRequest("POST", "/register", databuf)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -220,7 +250,7 @@ func TestRegisterError(t *testing.T) {
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, err := http.NewRequest("POST", "/register", databuf)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
@@ -228,7 +258,7 @@ func TestRegisterError(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		expected_code int
@@ -261,7 +291,7 @@ func TestLogin(t *testing.T) {
 			mock.ExpectCommit()
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("POST", "/login", databuf)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -270,7 +300,7 @@ func TestLogin(t *testing.T) {
 
 func TestLoginError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, s, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		sql           bool
@@ -300,7 +330,7 @@ func TestLoginError(t *testing.T) {
 				mock.ExpectExec(pqdb.CreateUser).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
-				err := s.Handlers.DB.Postgres.CreateUser(k.data)
+				err := s.DB.Postgres.CreateUser(k.data)
 				assert.Nil(t, err)
 				pwd, _ := pqdb.HashPassword(k.data.Password + "fails.")
 				rows := sqlmock.NewRows([]string{"Email", "Pwd", "NickName", "FullName"}).
@@ -313,7 +343,7 @@ func TestLoginError(t *testing.T) {
 			}
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("POST", "/login", databuf)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -337,7 +367,7 @@ func TestLoginError(t *testing.T) {
 		t.Run(fmt.Sprintln("no: ", len(data)+i+1), func(t *testing.T) {
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("POST", "/login", databuf)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
@@ -345,7 +375,7 @@ func TestLoginError(t *testing.T) {
 
 func TestBioPublic(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.ProfileBio
 		expected_code int
@@ -376,7 +406,7 @@ func TestBioPublic(t *testing.T) {
 			mock.ExpectCommit()
 			url := fmt.Sprintf("/info/%s", k.data.NickName)
 			req, _ := http.NewRequest("GET", url, nil)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -385,7 +415,7 @@ func TestBioPublic(t *testing.T) {
 
 func TestBioPublicError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.ProfileBio
 		sql           bool
@@ -424,7 +454,7 @@ func TestBioPublicError(t *testing.T) {
 			}
 			url := fmt.Sprintf("/info/%s", k.data.NickName)
 			req, _ := http.NewRequest("GET", url, nil)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 
@@ -434,7 +464,7 @@ func TestBioPublicError(t *testing.T) {
 
 func TestProfile(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -489,7 +519,7 @@ func TestProfile(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -498,7 +528,7 @@ func TestProfile(t *testing.T) {
 
 func TestProfileError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -553,7 +583,7 @@ func TestProfileError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -598,7 +628,7 @@ func TestProfileError(t *testing.T) {
 				Path:     "/",
 			}
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected, response.Code)
 		})
 	}
@@ -606,7 +636,7 @@ func TestProfileError(t *testing.T) {
 
 func TestAddBio(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -659,7 +689,7 @@ func TestAddBio(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -668,7 +698,7 @@ func TestAddBio(t *testing.T) {
 
 func TestAddBioError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -735,7 +765,7 @@ func TestAddBioError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -765,7 +795,7 @@ func TestAddBioError(t *testing.T) {
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("POST", "/profile/info", databuf)
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
@@ -773,7 +803,7 @@ func TestAddBioError(t *testing.T) {
 
 func TestEditBio(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -826,7 +856,7 @@ func TestEditBio(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -856,7 +886,7 @@ func TestEditBio(t *testing.T) {
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
@@ -864,7 +894,7 @@ func TestEditBio(t *testing.T) {
 
 func TestEditBioError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -919,7 +949,7 @@ func TestEditBioError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -949,7 +979,7 @@ func TestEditBioError(t *testing.T) {
 			databuf := ConvertDatatoBuf(t, k.data)
 			req, _ := http.NewRequest("PUT", "/profile/info", databuf)
 			req.AddCookie(cookie)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
@@ -957,7 +987,7 @@ func TestEditBioError(t *testing.T) {
 
 func TestDeleteBio(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -1014,7 +1044,7 @@ func TestDeleteBio(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 			assert.Nil(t, mock.ExpectationsWereMet())
 		})
@@ -1023,7 +1053,7 @@ func TestDeleteBio(t *testing.T) {
 
 func TestDeleteBioError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, mock := FakeNewServer(t)
+	r, _, mock := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		bio           *models.ProfileBio
@@ -1078,7 +1108,7 @@ func TestDeleteBioError(t *testing.T) {
 				}
 				req.AddCookie(cookie)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Equal(t, k.expected_code, response.Code)
 		})
 	}
@@ -1086,7 +1116,7 @@ func TestDeleteBioError(t *testing.T) {
 
 func TestLogout(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, _ := FakeNewServer(t)
+	r, _, _ := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		expected_code int
@@ -1135,7 +1165,7 @@ func TestLogout(t *testing.T) {
 				req.AddCookie(cookie)
 				req.Header.Add("Accept-Language", k.accept_lang)
 			}
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			expected_body, _ := json.Marshal(&k.expected_msg)
 			assert.JSONEq(t, string(expected_body), response.Body.String())
 			assert.Equal(t, k.expected_code, response.Code)
@@ -1145,7 +1175,7 @@ func TestLogout(t *testing.T) {
 
 func TestLogoutError(t *testing.T) {
 	log.SetOutput(io.Discard)
-	s, _ := FakeNewServer(t)
+	r, _, _ := FakeNewServer(t)
 	data := []struct {
 		data          *models.User
 		expected_code int
@@ -1166,7 +1196,7 @@ func TestLogoutError(t *testing.T) {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
 			req, err := http.NewRequest("POST", "/profile/logout", nil)
 			assert.Nil(t, err)
-			response := ExecuteRequest(req, s.Router)
+			response := ExecuteRequest(req, r)
 			assert.Nil(t, err)
 			assert.Equal(t, k.expected_body, response.Body.String())
 			assert.Equal(t, k.expected_code, response.Code)
