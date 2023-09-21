@@ -2,6 +2,7 @@ package routers
 
 import (
 	_ "backend/api/docs"
+	"backend/api/middlewares"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -18,7 +19,7 @@ func (s *Server) SetupRouters() {
 		middleware.Logger,
 		middleware.Recoverer,
 		render.SetContentType(render.ContentTypeJSON),
-		MiddlewareLang,
+		middlewares.Languages,
 	)
 	s.Router.Get("/", s.Handlers.Home)
 	s.Router.Post("/register", s.Handlers.Register)
@@ -36,7 +37,7 @@ func (s *Server) SetupRouters() {
 // UserHandlers routes only users
 func (s *Server) UserRouters() chi.Router {
 	r := chi.NewRouter()
-	r.Use(UsersOnly)
+	r.Use(middlewares.UsersOnly)
 	r.Get("/", s.Handlers.Profile)
 	// user info(bio)
 	r.Post("/info", s.Handlers.AddBio)
