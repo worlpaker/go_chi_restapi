@@ -2,8 +2,8 @@ package token
 
 import (
 	"backend/config"
-	"backend/models"
 	Log "backend/internal/log"
+	"backend/models"
 	"errors"
 	"fmt"
 	"io"
@@ -12,11 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 )
 
-func FakeGenerateJWT(
+func fakeGenerateJWT(
 	user *models.User, signingkey []byte,
 	method *jwt.SigningMethodHMAC, exp int64) (string, error) {
 	t := jwt.New(method)
@@ -41,8 +42,8 @@ func TestGenerateJWT(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			expected: nil,
 		},
@@ -66,8 +67,8 @@ func TestReadJWT(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte(config.TokenSecret),
 			method:     jwt.SigningMethodHS256,
@@ -76,8 +77,8 @@ func TestReadJWT(t *testing.T) {
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte(config.TokenSecret),
 			method:     jwt.SigningMethodHS256,
@@ -87,7 +88,7 @@ func TestReadJWT(t *testing.T) {
 	}
 	for i, k := range tests {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			token, _ := FakeGenerateJWT(k.data, k.signingkey, k.method, k.time)
+			token, _ := fakeGenerateJWT(k.data, k.signingkey, k.method, k.time)
 			req, _ := http.NewRequest(http.MethodGet, "/", nil)
 			cookie := &http.Cookie{
 				Name:     "Token",
@@ -114,8 +115,8 @@ func TestTokenValid(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte(config.TokenSecret),
 			method:     jwt.SigningMethodHS256,
@@ -125,7 +126,7 @@ func TestTokenValid(t *testing.T) {
 	}
 	for i, k := range tests {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			token, _ := FakeGenerateJWT(k.data, k.signingkey, k.method, k.time)
+			token, _ := fakeGenerateJWT(k.data, k.signingkey, k.method, k.time)
 			_, err := TokenValid(token)
 			assert.Equal(t, k.expected, err)
 		})
@@ -143,8 +144,8 @@ func TestVerifyToken(t *testing.T) {
 	}{
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte(config.TokenSecret),
 			method:     jwt.SigningMethodHS256,
@@ -153,8 +154,8 @@ func TestVerifyToken(t *testing.T) {
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte("test fails key"),
 			method:     jwt.SigningMethodHS256,
@@ -163,8 +164,8 @@ func TestVerifyToken(t *testing.T) {
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte(config.TokenSecret),
 			method:     (*jwt.SigningMethodHMAC)(jwt.SigningMethodRS384),
@@ -173,8 +174,8 @@ func TestVerifyToken(t *testing.T) {
 		},
 		{
 			data: &models.User{
-				Email:    "test@test.com",
-				NickName: "testnick",
+				Email:    gofakeit.Email(),
+				NickName: gofakeit.Username(),
 			},
 			signingkey: []byte(config.TokenSecret),
 			method:     jwt.SigningMethodHS256,
@@ -184,7 +185,7 @@ func TestVerifyToken(t *testing.T) {
 	}
 	for i, k := range tests {
 		t.Run(fmt.Sprintln("no: ", i+1), func(t *testing.T) {
-			token, _ := FakeGenerateJWT(k.data, k.signingkey, k.method, k.time)
+			token, _ := fakeGenerateJWT(k.data, k.signingkey, k.method, k.time)
 			_, err := VerifyToken(token)
 			assert.Equal(t, k.expected, err)
 		})
