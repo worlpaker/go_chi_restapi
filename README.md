@@ -42,8 +42,6 @@ cd go_chi_restapi
 docker-compose up --build -d
 ```
 
-- Detailed commands: [Docker Commands](https://docs.docker.com/engine/reference/commandline/docker/)
-
 ## Access
 
 Backend: <http://localhost:8000/>
