@@ -1,8 +1,8 @@
 package pqdb
 
 import (
-	"backend/models"
 	Log "backend/internal/log"
+	"backend/models"
 	"backend/token"
 	"context"
 	"database/sql"
@@ -19,7 +19,7 @@ func (s *Server) CreateUser(user *models.User) error {
 	if Log.Err(err) {
 		return err
 	}
-	defer func() { HandleTransaction(tx, &err) }()
+	defer transaction(tx, &err)
 	hashed_Pwd, err := HashPassword(user.Password)
 	if Log.Err(err) {
 		return err
@@ -38,7 +38,7 @@ func (s *Server) ReadUser(user *models.User) (string, error) {
 	if Log.Err(err) {
 		return "", err
 	}
-	defer HandleTransaction(tx, &err)
+	defer transaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err = tx.QueryRowContext(ctx, ReadUser, user.Email).Scan(
@@ -61,7 +61,7 @@ func (s *Server) AddBio(user *models.ProfileBio) error {
 	if Log.Err(err) {
 		return err
 	}
-	defer HandleTransaction(tx, &err)
+	defer transaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, err = tx.ExecContext(ctx, AddBio, user.NickName, user.Info)
@@ -75,7 +75,7 @@ func (s *Server) ReadBio(nickname string) (string, error) {
 	if Log.Err(err) {
 		return "", err
 	}
-	defer HandleTransaction(tx, &err)
+	defer transaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err = tx.QueryRowContext(ctx, ReadBio, nickname).
@@ -91,7 +91,7 @@ func (s *Server) EditBio(user *models.ProfileBio) error {
 	if Log.Err(err) {
 		return err
 	}
-	defer HandleTransaction(tx, &err)
+	defer transaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, err = tx.ExecContext(ctx, EditBio, user.NickName, user.Info)
@@ -100,18 +100,16 @@ func (s *Server) EditBio(user *models.ProfileBio) error {
 
 // DeleteBio deletes the profile bio from the SQL database based on the provided nickname.
 func (s *Server) DeleteBio(nickname string) error {
-	//example of using prepare context
-	//Why? - When you expect to execute the same SQL repeatedly.
-	//typically containing placeholders but with no actual parameter values
-	//A prepared statement is SQL that is parsed and saved by the DBMS,
-	//typically containing placeholders but with no actual parameter values.
-	//Later, the statement can be executed with a set of parameter values.
-	//see: https://go.dev/doc/database/prepared-statements
+	// example of using prepare context
+	// You can define a prepared statement for repeated use.
+	// This can help your code run a bit faster by avoiding the overhead
+	// of re-creating the statement each time your code performs the database operation.
+	// see: https://go.dev/doc/database/prepared-statements
 	tx, err := s.Client.Begin()
 	if Log.Err(err) {
 		return err
 	}
-	defer HandleTransaction(tx, &err)
+	defer transaction(tx, &err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	stmt, err := tx.PrepareContext(ctx, DeleteBio)

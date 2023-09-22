@@ -7,8 +7,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// HandleTransaction handles the commit or rollback of a SQL transaction based on the error value.
-func HandleTransaction(tx *sql.Tx, err *error) {
+// transaction handles the commit or rollback of a SQL transaction based on the error value.
+func transaction(tx *sql.Tx, err *error) {
 	switch *err {
 	case nil:
 		// Commit the transaction if the error is nil (successful operation)
